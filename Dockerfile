@@ -4,6 +4,8 @@ ARG ENVHTTPD_BUSYBOX_VERSION=1.36.1
 ARG ENVHTTPD_TINI_VERSION=0.19.0
 
 LABEL org.opencontainers.image.authors="kilna@kilna.com"
+LABEL org.opencontainers.image.url="https://hub.docker.io/r/kilna/envhttpd"
+LABEL org.opencontainers.image.source="https://github.com/kilna/envhttpd"
 
 COPY ./busybox.config /build/busybox/.config
 
