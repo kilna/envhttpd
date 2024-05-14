@@ -12,7 +12,7 @@
 ![GitHub Repo stars](https://img.shields.io/github/stars/kilna/envhttpd)
 
 A docker image of a web server that delivers environment variables as JSON and
-discrete curl-able endpoints; weighing in at less than 3mb, it is ideal to use
+discrete curl-able endpoints; weighing in at less than 2mb, it is ideal to use
 as a pod metadata sidecar in Kubernetes.
 
 ## Usage
@@ -86,7 +86,6 @@ exclude=HOME|HOSTNAME|PATH|PWD|ENVHTTPD_*
   direct endpoints.
 * Still too bloated. If I create a compiled binary for the environment dump,
   I can probably get the image to under 1mb.
-* Need to flesh out Kubernetes examples.
 
 ## Author
 
