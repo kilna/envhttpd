@@ -42,7 +42,7 @@ jobs:
         uses: peter-evans/dockerhub-description@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          token: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: kilna/envhttpd
-          description: ${{ github.event.repository.description }}
+          short-description: ${{ github.event.repository.description }}
 

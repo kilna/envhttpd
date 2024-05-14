@@ -9,9 +9,9 @@
 [![Docker Stars](https://img.shields.io/docker/stars/kilna/envhttpd?style=social)](https://hub.docker.com/r/kilna/envhttpd)
 
 [![GitHub kilna/envhttpd](https://img.shields.io/badge/GitHub-kilna/envhttpd-green?logo=github)](https://github.com/kilna/envhttpd)
-[![GitHub forks](https://img.shields.io/github/forks/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd)
-[![GitHub watchers](https://img.shields.io/github/watchers/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd)
-[![GitHub Repo stars](https://img.shields.io/github/stars/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd)
+[![GitHub forks](https://img.shields.io/github/forks/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd/forks)
+[![GitHub watchers](https://img.shields.io/github/watchers/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd/watchers)
+[![GitHub Repo stars](https://img.shields.io/github/stars/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd/stargazers)
 
 A docker image of a web server that delivers environment variables as JSON and
 discrete curl-able endpoints; weighing in at less than 2mb, it is ideal to use
