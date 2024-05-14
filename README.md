@@ -2,16 +2,16 @@
 
 **A Dockerized HTTPD to Serve Environment Variables**
 
-DockerHub [kilna/envhttpd](https://hub.docker.com/r/kilna/envhttpd):
-![Docker Image Version](https://img.shields.io/docker/v/kilna/envhttpd?sort=semver)
-![Docker Image Size (tag)](https://img.shields.io/docker/image-size/kilna/envhttpd/latest)
-![Docker Pulls](https://img.shields.io/docker/pulls/kilna/envhttpd)
-![Docker Stars](https://img.shields.io/docker/stars/kilna/envhttpd)
+[![DockerHub kilna/envhttpd](https://img.shields.io/badge/DockerHub-kilna/envhttpd-blue)](https://hub.docker.com/r/kilna/envhttpd)
+[![Docker Image Version](https://img.shields.io/docker/v/kilna/envhttpd?sort=semver)](https://hub.docker.com/r/kilna/envhttpd)
+[![Docker Image Size (tag)](https://img.shields.io/docker/image-size/kilna/envhttpd/latest)](https://hub.docker.com/r/kilna/envhttpd)
+[![Docker Pulls](https://img.shields.io/docker/pulls/kilna/envhttpd?style=social)](https://hub.docker.com/r/kilna/envhttpd)
+[![Docker Stars](https://img.shields.io/docker/stars/kilna/envhttpd?style=social)](https://hub.docker.com/r/kilna/envhttpd)
 
-GitHub [kilna/envhttpd](https://github.com/kilna/envhttpd):
-![GitHub forks](https://img.shields.io/github/forks/kilna/envhttpd)
-![GitHub watchers](https://img.shields.io/github/watchers/kilna/envhttpd)
-![GitHub Repo stars](https://img.shields.io/github/stars/kilna/envhttpd)
+[![GitHub kilna/envhttpd](https://img.shields.io/badge/GitHub-kilna/envhttpd-blue)](https://github.com/kilna/envhttpd) ->
+[![GitHub forks](https://img.shields.io/github/forks/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd)
+[![GitHub watchers](https://img.shields.io/github/watchers/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd)
+[![GitHub Repo stars](https://img.shields.io/github/stars/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd)
 
 A docker image of a web server that delivers environment variables as JSON and
 discrete curl-able endpoints; weighing in at less than 2mb, it is ideal to use
