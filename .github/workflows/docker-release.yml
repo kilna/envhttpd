@@ -35,6 +35,6 @@ jobs:
             org.opencontainers.image.revision:${{ github.sha }}
             org.opencontainers.image.version:${{ github.event.release.tag_name }}
           tags: |
-            ${{ env.REGISTRY_IMAGE }}:latest
-            ${{ env.REGISTRY_IMAGE }}:${{ env.VERSION_TAG }}
+            docker.io/kilna/envhttpd:latest
+            docker.io/kilna/envhttpd:${{ env.VERSION_TAG }}
 
