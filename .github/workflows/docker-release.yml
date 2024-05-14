@@ -38,9 +38,11 @@ jobs:
           #platforms: linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riskv64
           platforms: linux/amd64,linux/arm64
           push: true
-          labels:
-            - org.opencontainers.image.created=${{ github.event.release.created_at }}
-            - org.opencontainers.image.revision=${{ github.sha }}
-            - org.opencontainers.image.version=${{ github.event.release.tag_name }}
-          tags: ${{ env.REGISTRY_IMAGE }}:latest,${{ env.REGISTRY_IMAGE }}:${{ env.VERSION_TAG }}
+          labels: |
+            org.opencontainers.image.created:${{ github.event.release.created_at }}
+            org.opencontainers.image.revision:${{ github.sha }}
+            org.opencontainers.image.version:${{ github.event.release.tag_name }}
+          tags: |
+            ${{ env.REGISTRY_IMAGE }}:latest
+            ${{ env.REGISTRY_IMAGE }}:${{ env.VERSION_TAG }}
 
