@@ -30,9 +30,9 @@ jobs:
           platforms: |
             linux/386
             linux/amd64
-            linux/arm
             linux/arm64
             linux/riscv64
+          #linux/arm
           push: true
           labels: |
             org.opencontainers.image.created:${{ github.event.release.created_at }}
