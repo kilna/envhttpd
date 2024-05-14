@@ -42,7 +42,5 @@ jobs:
             org.opencontainers.image.created:${{ github.event.release.created_at }}
             org.opencontainers.image.revision:${{ github.sha }}
             org.opencontainers.image.version:${{ github.event.release.tag_name }}
-          tags: |
-            ${{ env.REGISTRY_IMAGE }}:latest
-            ${{ env.REGISTRY_IMAGE }}:${{ env.VERSION_TAG }}
+          tags: ${{ steps.meta.outputs.tags }}
 
