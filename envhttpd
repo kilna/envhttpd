@@ -19,10 +19,6 @@ echo "port=$ENVHTTPD_PORT"
 echo "include=$ENVHTTPD_INCLUDE"
 echo "exclude=$ENVHTTPD_EXCLUDE"
 
-if [ "$ENVHTTPD_TYPE" != 'text/plain' ]; then
-  echo ".txt:$ENVHTTPD_TYPE" >>/etc/httpd.conf
-fi
-
 json_esc() {
   sed -e 's/\\/\\\\/g; s|/|\\/|g; s/"/\\"/g; s/\\t/\\t/g;
           s/\\n/\\n/g; s/\\r/\\r/g; s/\\f/\\f/g; s/\\b/\\b/g;'
