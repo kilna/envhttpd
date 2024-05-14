@@ -27,7 +27,7 @@ RUN set -e -x; \
     wget "$busybox_base/busybox-$ENVHTTPD_BUSYBOX_VERSION.tar.bz2" \
       -O /build/busybox.tar.bz2; \
     cd busybox; \
-    tar -x -v --strip-components=1 -f ../busybox.tar.bz2; \
+    tar -x --strip-components=1 -f ../busybox.tar.bz2; \
     make; \
     ./make_single_applets.sh; \
     make V=1 install
