@@ -35,7 +35,7 @@ jobs:
           push: true
           labels: ${{ steps.meta.outputs.labels }}
           tags: |
-            ${{ env.REGISTRY_IMAGE }}:{{ version }}
+            ${{ env.REGISTRY_IMAGE }}:${{ version }}
             ${{ env.REGISTRY_IMAGE }}:latest
 
 
