@@ -2,13 +2,13 @@
 
 **A Dockerized HTTPD to Serve Environment Variables**
 
-[![DockerHub kilna/envhttpd](https://img.shields.io/badge/DockerHub-kilna/envhttpd-blue)](https://hub.docker.com/r/kilna/envhttpd)
+[![DockerHub kilna/envhttpd](https://img.shields.io/badge/DockerHub-kilna/envhttpd-blue?logo=docker)](https://hub.docker.com/r/kilna/envhttpd)
 [![Docker Image Version](https://img.shields.io/docker/v/kilna/envhttpd?sort=semver)](https://hub.docker.com/r/kilna/envhttpd)
 [![Docker Image Size (tag)](https://img.shields.io/docker/image-size/kilna/envhttpd/latest)](https://hub.docker.com/r/kilna/envhttpd)
 [![Docker Pulls](https://img.shields.io/docker/pulls/kilna/envhttpd?style=social)](https://hub.docker.com/r/kilna/envhttpd)
 [![Docker Stars](https://img.shields.io/docker/stars/kilna/envhttpd?style=social)](https://hub.docker.com/r/kilna/envhttpd)
 
-[![GitHub kilna/envhttpd](https://img.shields.io/badge/GitHub-kilna/envhttpd-blue)](https://github.com/kilna/envhttpd) ->
+[![GitHub kilna/envhttpd](https://img.shields.io/badge/GitHub-kilna/envhttpd-black?logo=github)](https://github.com/kilna/envhttpd)
 [![GitHub forks](https://img.shields.io/github/forks/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd)
 [![GitHub watchers](https://img.shields.io/github/watchers/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd)
 [![GitHub Repo stars](https://img.shields.io/github/stars/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd)
