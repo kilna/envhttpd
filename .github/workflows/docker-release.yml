@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Prepare
-        runs: |
+        run: |
           TAG=${{ github.event.release.tag_name }}
           echo "VERSION_TAG=${TAG#v}" >> $GITHUB_ENV
       - name: Checkout
