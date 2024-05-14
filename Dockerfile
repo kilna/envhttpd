@@ -3,9 +3,13 @@ FROM alpine AS build
 ARG ENVHTTPD_BUSYBOX_VERSION=1.36.1
 ARG ENVHTTPD_TINI_VERSION=0.19.0
 
-LABEL org.opencontainers.image.authors="kilna@kilna.com"
-LABEL org.opencontainers.image.url="https://hub.docker.io/r/kilna/envhttpd"
+LABEL org.opencontainers.image.title="envhttpd"
+LABEL org.opencontainers.image.authors="Kilna Anthony <kilna@kilna.com>"
+LABEL org.opencontainers.image.url="https://hub.docker.com/r/kilna/envhttpd"
 LABEL org.opencontainers.image.source="https://github.com/kilna/envhttpd"
+LABEL org.opencontainers.image.documentation="https://github.com/kilna/envhttpd"
+LABEL org.opencontainers.image.description="A dockerized HTTPD for serving environment variables"
+LABEL org.opencontainers.image.licenses="MIT"
 
 COPY ./busybox.config /build/busybox/.config
 

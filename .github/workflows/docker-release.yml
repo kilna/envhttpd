@@ -7,12 +7,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Prepare
+        runs: |
+          TAG=${{ github.event.release.tag_name }}
+          echo "VERSION_TAG=${TAG#v}" >> $GITHUB_ENV
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Docker meta
         uses: docker/metadata-action@v5
+        id: meta
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           tags: |
@@ -33,9 +38,11 @@ jobs:
           #platforms: linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riskv64
           platforms: linux/amd64,linux/arm64
           push: true
-          labels: ${{ steps.meta.outputs.labels }}
-          tags: |
-            ${{ env.REGISTRY_IMAGE }}:${{ version }}
-            ${{ env.REGISTRY_IMAGE }}:latest
-
+          labels:
+            org.opencontainers.image.created: ${{ github.event.release.created_at }}
+            org.opencontainers.image.revision: ${{ github.sha }}
+            org.opencontainers.image.version: ${{ github.event.release.tag_name }}
+          tags:
+            - ${{ env.REGISTRY_IMAGE }}:latest
+            - ${{ env.REGISTRY_IMAGE }}:${{ env.VERSION_TAG }}
 
