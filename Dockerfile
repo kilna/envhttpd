@@ -1,7 +1,8 @@
-FROM alpine AS build
-
+ARG ENVHTTPD_ALPINE_VERSION=3.19.1
 ARG ENVHTTPD_BUSYBOX_VERSION=1.36.1
 ARG ENVHTTPD_TINI_VERSION=0.19.0
+
+FROM alpine:${ENVHTTPD_ALPINE_VERSION} AS build
 
 LABEL org.opencontainers.image.title="envhttpd"
 LABEL org.opencontainers.image.authors="Kilna Anthony <kilna@kilna.com>"
