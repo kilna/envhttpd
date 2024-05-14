@@ -27,8 +27,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          #platforms: linux/amd64,linux/arm64
-          platforms: linux/amd64,linux/arm64,linux/386,linux/arm/v6,linux/arm/v7,linux/riscv64
+          platforms: linux/amd64,linux/arm64,linux/arm64v8,linux/386,linux/armv6,linux/armv7,linux/riscv64
           push: true
           labels: |
             org.opencontainers.image.created:${{ github.event.release.created_at }}
@@ -37,4 +36,5 @@ jobs:
           tags: |
             docker.io/kilna/envhttpd:latest
             docker.io/kilna/envhttpd:${{ env.VERSION_TAG }}
-
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
