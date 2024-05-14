@@ -86,6 +86,7 @@ exclude=HOME|HOSTNAME|PATH|PWD|ENVHTTPD_*
   direct endpoints.
 * Still too bloated. If I create a compiled binary for the environment dump,
   I can probably get the image to under 1mb.
+* Need to flesh out Kubernetes examples.
 
 ## Author
 
