@@ -2,11 +2,14 @@
 
 **A Dockerized HTTPD to Serve Environment Variables**
 
-[![](https://img.shields.io/GitHub-kilna/envhttpd.svg?style=plastic)](https://github.com/kilna/envhttpd/)
-[![](https://img.shields.io/DockerHub-kilna/envhttpd.svg?style=plastic)](https://hub.docker.com/r/kilna/envhttpd/)
-[![](https://img.shields.io/docker/pulls/kilna/envhttpd.svg?style=plastic)](https://hub.docker.com/r/kilna/envhttpd/)
-[![](https://img.shields.io/docker/stars/kilna/envhttpd.svg?style=plastic)](https://hub.docker.com/r/kilna/envhttpd/)
-[![](https://img.shields.io/badge/docker_build-automated-blue.svg?style=plastic)](https://cloud.docker.com/swarm/kilna/repository/docker/kilna/envhttpd/builds)
+![Docker Image Version](https://img.shields.io/docker/v/kilna/envhttpd?sort=semver)
+![Docker Image Size (tag)](https://img.shields.io/docker/image-size/kilna/envhttpd/latest)
+![Docker Pulls](https://img.shields.io/docker/pulls/kilna/envhttpd)
+![Docker Stars](https://img.shields.io/docker/stars/kilna/envhttpd)
+
+![GitHub forks](https://img.shields.io/github/forks/kilna/envhttpd)
+![GitHub watchers](https://img.shields.io/github/watchers/kilna/envhttpd)
+![GitHub Repo stars](https://img.shields.io/github/stars/kilna/envhttpd)
 
 A docker image of a web server that delivers environment variables as JSON and
 discrete curl-able endpoints; weighing in at less than 3mb, it is ideal to use
