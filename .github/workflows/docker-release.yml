@@ -35,8 +35,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          #platforms: linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riskv64
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/riskv64
           push: true
           labels: |
             org.opencontainers.image.created:${{ github.event.release.created_at }}
