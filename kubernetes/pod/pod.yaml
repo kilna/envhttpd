@@ -8,4 +8,7 @@ spec:
     image: kilna/envhttpd
     ports:
     - containerPort: 8111
-      
+    env:
+    - name: VARNAME
+      value: This is a test value for VARNAME
+

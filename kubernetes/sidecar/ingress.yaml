@@ -1,0 +1,27 @@
+# This maps the main pod httpd server to / and then maps the /metadata
+# endpoint to the envhttpd server
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: envhttpd-example
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: http
+            port:
+              number: 32064
+      - path: /metadata
+        pathType: Prefix
+        backend:
+          service:
+            name: http-metadata
+            port:
+              number: 32111

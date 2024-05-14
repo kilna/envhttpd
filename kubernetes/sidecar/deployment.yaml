@@ -1,4 +1,38 @@
+# This is a deployment with associated metadata sidecar container, that can
+# serve up information about the pod. This is handy for knowing what kind of
+# pods are backing the requets you are sending.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: envhttpd-example
+  labels:
+    app: envhttpd-example
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: envhttpd-example
+  template:
+    metadata:
+      labels:
+        app: envhttpd-example
+    spec:
+      containers:
+      - name: main
+        image: lipanski/docker-static-website
+        ports:
+        - name: http
+          containerPort: 3000
+      - name: metadata
+        image: kilna/envhttpd
+        ports:
+        - name: http-metadata
+          containerPort: 8111
+        env:
+        - name: deployment_color
+          value: blue
+        - name: author
+          value: kilna
+        - name: image_version
+          value: latest
+

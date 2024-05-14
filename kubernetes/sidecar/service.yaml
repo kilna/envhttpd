@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: envhttpd-example
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: envhttpd-example
+  ports:
+    - name: http
+      protocol: TCP
+      port: 32064
+      targetPort: http
+    - name: http-metadata
+      protocol: TCP
+      port: 32111
+      targetPort: http-metadata
+
