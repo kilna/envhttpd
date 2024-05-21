@@ -6,7 +6,7 @@ build:
 	docker buildx build . -t $(IMAGE):build --progress plain \
 	  --platform $(PLATFORMS) --push
 
-release: build
+check_version:
 	if [ "$(VERSION)" == '' ]; then
 	  echo "Must run make as 'VERSION=vX.Y.Z make release'" >&2
 	  exit 1
@@ -16,26 +16,25 @@ release: build
 	  echo "You need a version entry for $(VERSION) in CHANGELOG.yml" >&2
 	  exit 1
 	fi
+
+check_git_status:
 	if [ `git status` != *'up to date'*'working tree clean' ]; then
 	  echo "`make release` needs up to date, clean git working tree" >&2
 	  exit 1
 	fi
+	branch=`git branch | grep -F '*' | cut -f2- -d' '`
+	if [ "$(VERSION)" != *-* && "$branch" != 'main' ]; then
+	  echo "`make release` must be on main branch for non-prerelease" >&2
+	  exit 1
+	fi
+
+docker_release: check_version
 	docker pull $(IMAGE):build
 	docker_ver=`echo "$(VERSION)" | sed -e 's/^v//'
-	branch=`git branch | grep -F '*' | cut -f2- -d' '`
-	gh release delete -y $(VERSION) || true
-	git push --delete origin $(VERSION) || true
 	if [ "$(VERSION)" == *-* ]; then
-	  gh release create -n "$desc" --title $(VERSION) $(VERSION) \
-	    --target "$branch" --prerelease
 	  docker tag $(IMAGE):build $(IMAGE):edge
 	  docker push $(IMAGE):edge
 	else
-	  if [ "$branch" != 'main' ]; then
-	    echo "`make release` must be on main branch for non-prerelease" >&2
-	    exit 1
-	  fi
-	  gh release create -n "$desc" --title $(VERSION) $(VERSION)
 	  docker tag $(IMAGE):build $(IMAGE):edge
 	  docker push $(IMAGE):edge
 	  docker tag $(IMAGE):build $(IMAGE):latest
@@ -43,4 +42,17 @@ release: build
 	fi
 	docker tag $(IMAGE):build $(IMAGE):$docker_ver
 	docker push $(IMAGE):$docker_ver
+
+github_release: check_git_status check_version
+	branch=`git branch | grep -F '*' | cut -f2- -d' '`
+	gh release delete -y $(VERSION) || true
+	git push --delete origin $(VERSION) || true
+	if [ "$(VERSION)" == *-* ]; then
+	  gh release create -n "$desc" --title $(VERSION) $(VERSION) \
+	    --target "$branch" --prerelease
+	else
+	  gh release create -n "$desc" --title $(VERSION) $(VERSION)
+	fi
+
+release: build github_release docker_release
 
