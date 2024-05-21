@@ -24,10 +24,6 @@ json_esc() {
           s/\\n/\\n/g; s/\\r/\\r/g; s/\\f/\\f/g; s/\\b/\\b/g;'
 }
 
-clean() {
-  sed -e 's|[^A-Za-z0-9_.,;:-]||g'
-}
-
 json='{'
 while read var; do
   var="$(echo "$var" | cut -f1 -d=)" # Strip off value past =
@@ -45,7 +41,8 @@ while read var; do
              "$(eval "echo \"\${$var}\"" | json_esc)"
     )"
     mkdir -p "$(echo "$var" | clean)"
-    eval "echo \"\${$var}\" >\"$(echo "$var" | clean)/index.txt\""
+    name="$(echo "$var" | tr -d 'A-Za-z0-9_.,;:-')"
+    eval "echo \"\${$var}\" >\"${name}/index.txt\""
   fi
 done <<EOT
 $(env)
@@ -57,5 +54,5 @@ echo "$json" >index.txt
 
 unset json
 
-exec /sbin/httpd -f -v -p $ENVHTTPD_PORT -c /etc/httpd.conf
+exec httpd -f -v -p $ENVHTTPD_PORT -c /etc/httpd.conf
 

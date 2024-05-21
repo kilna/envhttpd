@@ -14,7 +14,7 @@
 [![GitHub Repo stars](https://img.shields.io/github/stars/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd/stargazers)
 
 A docker image of a web server that delivers environment variables as JSON and
-discrete curl-able endpoints; weighing in at less than 2mb, it is ideal to use
+discrete curl-able endpoints; weighing in at less than 1mb, it is ideal to use
 as a queryable pod metadata sidecar in Kubernetes, or any situation in which
 you need to expose simple data without a lot of overhead.
 
