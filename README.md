@@ -25,7 +25,7 @@ you need to expose simple data without a lot of overhead.
 Fire up a container and curl against it...
 
 ```
-$ docker run -e foo=bar -e yo=bro -p 8111:8111 -d envhttpd
+$ docker run -e foo=bar -e yo=bro -p 8111:8111 -d kilna/envhttpd
 f92be2e047b1bf68ce7c82a7b8c3358e9b4fceb0e826df6b3952c651d25096e1
 
 # Get all included environment variables as a JSON dictionary
