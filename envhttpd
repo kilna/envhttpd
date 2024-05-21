@@ -42,8 +42,8 @@ while read var; do
              "$(echo "$var" | json_esc)" \
              "$(eval "echo \"\${$var}\"" | json_esc)"
     )"
-    mkdir -p "$(echo "$var" | clean)"
     name="$(echo "$var" | tr -d 'A-Za-z0-9_.,;:-')"
+    mkdir -p "$name"
     eval "echo \"\${$var}\" >\"${name}/index.txt\""
   fi
 done <<EOT
