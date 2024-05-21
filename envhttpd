@@ -57,5 +57,5 @@ echo "$json" >index.txt
 
 unset json
 
-exec /sbin/httpd -f -v -p $ENVHTTPD_PORT -c /etc/httpd.conf
+exec /bin/httpd -f -v -p $ENVHTTPD_PORT -c /etc/httpd.conf
 
