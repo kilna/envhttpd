@@ -1,0 +1,19 @@
+v1.0.2:
+  date: 2024-05-21
+  description: |
+    * Significantly reduce image size by using dynamically linked musl for
+      everything
+    * Add Makefile
+    * Move install to separate scirpt
+    * Support ARM 32-bit and 386 platforms
+
+v1.0.1:
+  date: 2024-05-14
+  description: |
+    Fix "can't create /etc/httpd.conf: Permission denied" error
+
+v1.0.0:
+  date: 2024-05-14
+  description: |
+    Initial Release
+
