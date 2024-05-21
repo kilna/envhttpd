@@ -34,7 +34,6 @@ jobs:
             org.opencontainers.image.revision:${{ github.sha }}
             org.opencontainers.image.version:${{ github.event.release.tag_name }}
           tags: |
-            docker.io/kilna/envhttpd:latest
             docker.io/kilna/envhttpd:${{ env.VERSION_TAG }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
