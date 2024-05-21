@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 while read line; do
   case "$line" in
     '')         :;; # Do nothing with blank lines
