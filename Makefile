@@ -28,7 +28,7 @@ check_git_status:
 	  exit 1
 	fi
 
-docker_release: check_version
+docker_release: check_version build
 	docker pull $(IMAGE):build
 	docker_ver=`echo "$(VERSION)" | sed -e 's/^v//'
 	if [ "$(VERSION)" == *-* ]; then
@@ -54,5 +54,5 @@ github_release: check_git_status check_version
 	  gh release create -n "$desc" --title $(VERSION) $(VERSION)
 	fi
 
-release: build github_release docker_release
+release: github_release docker_release
 
