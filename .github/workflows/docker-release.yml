@@ -27,14 +27,13 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/386,linux/arm64,linux/arm,linux/riscv64
           push: true
           labels: |
             org.opencontainers.image.created:${{ github.event.release.created_at }}
             org.opencontainers.image.revision:${{ github.sha }}
             org.opencontainers.image.version:${{ github.event.release.tag_name }}
           tags: |
-            docker.io/kilna/envhttpd:latest
             docker.io/kilna/envhttpd:${{ env.VERSION_TAG }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
