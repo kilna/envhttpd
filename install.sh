@@ -42,7 +42,7 @@ package_install() {
   apk add busybox-extras
   cd $target/bin
   cp -av /bin/busybox* ./
-  for exe in cat cut env mkdir rev sh tr; do
+  for exe in cat cut env mkdir rev sh tr sed; do
     ln -sv busybox $exe
   done
   ln -sv busybox-extras httpd
