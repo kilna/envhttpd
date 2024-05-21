@@ -35,8 +35,6 @@ jobs:
             org.opencontainers.image.version:${{ github.event.release.tag_name }}
           tags: |
             docker.io/kilna/envhttpd:${{ env.VERSION_TAG }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v4
         with:
