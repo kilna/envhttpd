@@ -14,21 +14,21 @@ build:
 check_version:
 	if [ $(VERSION) == '' ]; then \
 	  echo "Must run make as 'VERSION=vX.Y.Z make release'" >&2; \
-	  exit 1; \
+	  false; \
 	fi
 	if [ "$(DESC)" == '' ]; then \
 	  echo "You need a version entry for $(VERSION) in CHANGELOG.yml" >&2; \
-	  exit 1; \
+	  false; \
 	fi
 
 check_git_status:
 	if [ "$(GIT_STATUS)" != *'up to date'*'working tree clean'* ]; then \
 	  echo "`make release` needs up to date, clean git working tree" >&2; \
-	  exit 1; \
+	  false; \
 	fi
 	if [ "$(VERSION)" != *-* && "$(GIT_BRANCH)" != 'main' ]; then \
 	  echo "`make release` must be on main branch for non-prerelease" >&2; \
-	  exit 1; \
+	  false; \
 	fi
 
 docker_release: check_version build
