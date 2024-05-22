@@ -9,6 +9,7 @@ DESC       := $(shell yq -r '."$(VERSION)".description' CHANGELOG.yml || true)
 build:
 	docker buildx build . -t $(IMAGE):build --progress plain \
 	  --platform $(PLATFORMS) --push
+	docker pull $(IMAGE):build
 
 check_version:
 	if [ $(VERSION) == '' ]; then \
@@ -21,28 +22,21 @@ check_version:
 	fi
 
 check_git_status:
-	if [ $(GIT_STATUS) != *'up to date'*'working tree clean' ]; then \
+	if [ "$(GIT_STATUS)" != *'up to date'*'working tree clean'* ]; then \
 	  echo "`make release` needs up to date, clean git working tree" >&2; \
 	  exit 1; \
 	fi
-	if [ $(VERSION) != *-* && $(GIT_BRANCH) != 'main' ]; then \
+	if [ "$(VERSION)" != *-* && "$(GIT_BRANCH)" != 'main' ]; then \
 	  echo "`make release` must be on main branch for non-prerelease" >&2; \
 	  exit 1; \
 	fi
 
 docker_release: check_version build
-	docker pull $(IMAGE):build
-	if [ $(VERSION) == *-* ]; then \
-	  docker tag $(IMAGE):build $(IMAGE):edge; \
-	  docker push $(IMAGE):edge; \
-	else \
-	  docker tag $(IMAGE):build $(IMAGE):edge; \
-	  docker push $(IMAGE):edge; \
-	  docker tag $(IMAGE):build $(IMAGE):latest; \
-	  docker push $(IMAGE):latest; \
+	docker buildx imagetools create --tag $(IMAGE):edge $(IMAGE):build
+	if [ "$(VERSION)" != *-* ]; then \
+	  docker buildx imagetools create --tag $(IMAGE):latest $(IMAGE):build
 	fi
-	docker tag $(IMAGE):build $(IMAGE):$(DOCKER_VER)
-	docker push $(IMAGE):$(DOCKER_VER)
+	docker buildx imagetools create --tag $(IMAGE):$(DOCKER_VER) $(IMAGE):build
 
 github_release: check_git_status check_version
 	gh release delete -y $(VERSION) || true
@@ -54,5 +48,5 @@ github_release: check_git_status check_version
 	  gh release create -n "$(DESC)" --title $(VERSION) $(VERSION); \
 	fi
 
-release: github_release docker_release
+release: docker_release github_release
 
