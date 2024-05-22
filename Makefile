@@ -51,7 +51,7 @@ github_release: check_git_status check_version
 	  gh release create -n "$desc" --title $(VERSION) $(VERSION) \
 	    --target $(GIT_BRANCH) --prerelease; \
 	else \
-	  gh release create -n $(DESC) --title $(VERSION) $(VERSION); \
+	  gh release create -n "$(DESC)" --title $(VERSION) $(VERSION); \
 	fi
 
 release: github_release docker_release
