@@ -34,13 +34,15 @@ check_git_status:
 docker_release: check_version build
 	docker buildx imagetools create --tag $(IMAGE):edge $(IMAGE):build
 	if [ "$(VERSION)" != *-* ]; then \
-	  docker buildx imagetools create --tag $(IMAGE):latest $(IMAGE):build
+	  docker buildx imagetools create --tag $(IMAGE):latest $(IMAGE):build; \
 	fi
 	docker buildx imagetools create --tag $(IMAGE):$(DOCKER_VER) $(IMAGE):build
 
-github_release: check_git_status check_version
+github_unrelease:
 	gh release delete -y $(VERSION) || true
 	git push --delete origin $(VERSION) || true
+
+github_release: check_git_status check_version github_unrelease
 	if [ $(VERSION) == *-* ]; then \
 	  gh release create -n "$desc" --title $(VERSION) $(VERSION) \
 	    --target $(GIT_BRANCH) --prerelease; \
@@ -48,5 +50,5 @@ github_release: check_git_status check_version
 	  gh release create -n "$(DESC)" --title $(VERSION) $(VERSION); \
 	fi
 
-release: docker_release github_release
+release: check_git_status docker_release github_release
 
