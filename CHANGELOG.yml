@@ -1,5 +1,5 @@
-v1.1.0-rc1:
-  date: 2024-05-21
+v1.1.0:
+  date: 2024-05-22
   description: |
     * Significantly reduce image size by using dynamically linked musl for
       everything
