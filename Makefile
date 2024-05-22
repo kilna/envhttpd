@@ -15,7 +15,7 @@ check_version:
 	  echo "Must run make as 'VERSION=vX.Y.Z make release'" >&2; \
 	  exit 1; \
 	fi
-	if [ $(DESC) == '' ]; then \
+	if [ "$(DESC)" == '' ]; then \
 	  echo "You need a version entry for $(VERSION) in CHANGELOG.yml" >&2; \
 	  exit 1; \
 	fi
