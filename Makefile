@@ -1,4 +1,4 @@
-VERSION    := ''
+VERSION    = ''
 IMAGE      := 'kilna/envhttpd'
 PLATFORMS  := linux/amd64,linux/386,linux/arm64,linux/arm/v6,linux/arm/v7
 GIT_BRANCH := $(shell git branch | grep -F '*' | cut -f2- -d' ')
