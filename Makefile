@@ -5,6 +5,10 @@ GIT_BRANCH := $(shell git branch | grep -F '*' | cut -f2- -d' ')
 GIT_STATUS := $(shell git status)
 DOCKER_VER := $(shell echo "$(VERSION)" | sed -e 's/^v//')
 DESC       := $(shell yq -r '."$(VERSION)".description' CHANGELOG.yml || true)
+VER_REGEX  := 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9]+)?'
+
+.PHONY: build check_version check_git_status docker_release github_release \
+        github_unrelease release
 
 build:
 	docker buildx build . -t $(IMAGE):build --progress plain \
@@ -12,30 +16,25 @@ build:
 	docker pull $(IMAGE):build
 
 check_version:
-	if [ $(VERSION) == '' ]; then \
-	  echo "Must run make as 'VERSION=vX.Y.Z make release'" >&2; \
-	  false; \
-	fi
-	if [ "$(DESC)" == '' ]; then \
-	  echo "You need a version entry for $(VERSION) in CHANGELOG.yml" >&2; \
-	  false; \
-	fi
+	ifeq ($(VERSION),$(echo "$(VERSION)" | grep -E "$(VER_REGEX)"))
+	  $(error Must run make as \`make release VERSION=vX.Y.Z\`)
+	endif
+	ifeq ($(DESC), '')
+	  $(error You need a version entry for $(VERSION) in CHANGELOG.yml)
+	endif
 
 check_git_status:
-	if [ "$(GIT_STATUS)" != *'up to date'*'working tree clean'* ]; then \
-	  echo "`make release` needs up to date, clean git working tree" >&2; \
-	  false; \
-	fi
-	if [ "$(VERSION)" != *-* && "$(GIT_BRANCH)" != 'main' ]; then \
-	  echo "`make release` must be on main branch for non-prerelease" >&2; \
-	  false; \
-	fi
+	$(shell echo "$(GIT_STATUS)" | grep -qF "up to date")) || \
+	  $(error Git working copy is not up to date)
+	$(shell echo "$(GIT_STATUS)" | grep -qF "working tree clean")) || \
+	  $(error Git working tree is not clearn)
+	$(shell [ "$(VERSION)" != *-* && "$(GIT_BRANCH)" != 'main' ]) || \
+	  $(error \`make release\` must be on main branch for non-prerelease)
 
 docker_release: check_version build
 	docker buildx imagetools create --tag $(IMAGE):edge $(IMAGE):build
-	if [ "$(VERSION)" != *-* ]; then \
-	  docker buildx imagetools create --tag $(IMAGE):latest $(IMAGE):build; \
-	fi
+	[ "$(VERSION)" != *-* ] && \
+	  docker buildx imagetools create --tag $(IMAGE):latest $(IMAGE):build
 	docker buildx imagetools create --tag $(IMAGE):$(DOCKER_VER) $(IMAGE):build
 
 github_unrelease:
