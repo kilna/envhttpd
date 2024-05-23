@@ -87,8 +87,6 @@ exclude=HOME|HOSTNAME|PATH|PWD|ENVHTTPD_*
   at a later point to remedy.
 * Special characters will be stripped from environment variable names for
   direct endpoints.
-* Still too bloated. If I create a compiled binary for the environment dump,
-  I can probably get the image to under 1mb.
 
 ## Author
 
