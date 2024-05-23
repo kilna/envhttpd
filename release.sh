@@ -1,6 +1,7 @@
 #!/bin/bash
 
 export image='kilna/envhttpd'
+export short_desc='A Dockerized HTTPD to Serve Environment Variables'
 export platforms='linux/amd64,linux/386,linux/arm64,linux/arm/v6,linux/arm/v7'
 export ver_regex='v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9]+)?'
 export git_branch=$(git branch | grep -F '*' | cut -f2- -d' ')
@@ -61,12 +62,22 @@ github_release() {
   fi
 }
 
+docker_install_pushrm() {
+  [[ -e ~/.docker/cli-plugins/docker-pushrm ]] && return
+  curl -o ~/.docker/cli-plugins/docker-pushrm -fsSL \
+    https://github.com/christian-korneck/docker-pushrm/releases/download/v1.9.0/docker-pushrm_darwin_amd64
+  chmod +x ~/.docker/cli-plugins/docker-pushrm
+}
+
 docker_release() {
   check_version
   build
+  docker_install_pushrm
   run docker buildx imagetools create --tag $image:edge $image:build
-  [[ "$version" != *-* ]] && \
+  if [[ "$version" != *-* ]]; then
     run docker buildx imagetools create --tag $image:latest $image:build
+    run docker pushrm $image --short "$short_desc"
+  fi
   run docker buildx imagetools create \
     --tag $image:$(echo "$version" | sed -e 's/^v//') $image:build
 }
