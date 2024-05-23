@@ -12,15 +12,15 @@ run() { echo "$@"; "$@"; }
 error() { echo "$1" >&2; exit "${2:-1}"; }
 
 description() {
-  yq -r '."$version".description // ""' CHANGELOG.yml
+  yq -r ".\"$version\".description // \"\"" CHANGELOG.yml
 }
 
 check_version() {
-  if !(echo "$1" | grep -qE "$ver_regex"); then
+  if !(echo "$version" | grep -qE "$ver_regex"); then
     error "Must proivde a version in vX.Y.Z or vX.Y.Z-prerelease format";
   fi
   if [[ "$(description)" == '' ]]; then
-    error "CHANGELOG.yml is missing entry for $1"
+    error "CHANGELOG.yml is missing entry for $version"
   fi
 }
 
