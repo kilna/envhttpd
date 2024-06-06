@@ -55,10 +55,10 @@ github_release() {
   check_version
   check_git_status
   if [ $version == *-* ]; then \
-    run gh release create -n "$desc" --title $version $version \
-      --target $(GIT_BRANCH) --prerelease; \
+    run gh release create -n "$(description)" --title $version $version \
+      --target $git_branch --prerelease; \
   else \
-    run gh release create -n "$(DESC)" --title $version $version; \
+    run gh release create -n "$(description)" --title $version $version; \
   fi
 }
 
