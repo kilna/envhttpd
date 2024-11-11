@@ -1,4 +1,4 @@
-# envhttpd
+# <img src="build/icon.png" style="height: 1em; vertical-align: middle;" /> envhttpd
 
 **A Dockerized HTTPD to Serve Environment Variables**
 
@@ -13,31 +13,83 @@
 [![GitHub watchers](https://img.shields.io/github/watchers/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd/watchers)
 [![GitHub Repo stars](https://img.shields.io/github/stars/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd/stargazers)
 
-A docker image of a web server that delivers environment variables as JSON and
-discrete curl-able endpoints; weighing in at less than 1mb, it is ideal to use
-as a queryable pod metadata sidecar in Kubernetes, or any situation in which
-you need to expose simple data without a lot of overhead.
+A web server and associated Docker image that delivers environment variables as
+HTML, JSON, YAML, and shell-evaluable script, and discrete curl-able endpoints.
+It allows filtering of environment variables based on inclusion and exclusion
+patterns to control what is exposed.
 
-## Usage
+Weighing in at less than 1mb, it is ideal to use as a queryable pod metadata
+sidecar in Kubernetes, or any situation in which you need to expose simple data
+without a lot of overhead.
 
-### Local testing
+## Examples
+
+### Running the container
 
 Fire up a container and curl against it...
 
 ```
 $ docker run -e foo=bar -e yo=bro -p 8111:8111 -d kilna/envhttpd
-f92be2e047b1bf68ce7c82a7b8c3358e9b4fceb0e826df6b3952c651d25096e1
+Server is running at http://localhost:8111
+```
 
-# Get all included environment variables as a JSON dictionary
-$ curl localhost:8111
+#### Providing command line options to the container
+
+Everything after the image name `kilna/envhttpd` is passed as arguments to the
+`envhttpd` binary (see [Command-Line Help](#command-line-help) for more details).
+
+```
+$ docker run -e foo=bar -e yo=bro -p 8222:8222 -d kilna/envhttpd -p 8222 -i foo -x yo -H envhttpd.local
+Server is running at http://envhttpd.local:8222
+```
+
+### Text
+
+Get a specific environment variable's value as plain UTF-8 text:
+
+```
+$ curl localhost:8111/var/foo
+bar
+```
+
+### JSON
+
+Get all included environment variables as a JSON dictionary:
+
+```
+$ curl localhost:8111/json
+{"foo":"bar","yo":"bro"}
+
+$ curl localhost:8111/json?pretty
 {
   "foo": "bar",
   "yo": "bro"
 }
+```
 
-# Get a specific value individually
-$ curl localhost:8111/foo
-bar
+### YAML
+
+Get all included environment variables as a YAML dictionary:
+
+```
+$ curl localhost:8111/yaml
+---
+foo: bar
+yo: bro
+```
+
+### Shell
+
+Get all included environment variables as a shell-evaluable script:
+
+```
+$ curl localhost:8111/sh
+foo="bar"
+yo="bro"
+
+$ curl localhost:8111/sh?export
+export foo="bar"
+export yo="bro"
 ```
 
 ### Kubernetes
@@ -45,52 +97,41 @@ bar
 See the [kubernetes example](./kubernetes/) for [pod](./kubernetes/pod/) and
 [sidecar deployment](./kubernetes/sidecar/) under the `kubernetes/` folder.
 
-## Configuration
-
-### Environment Variables
-
-You can pass in the following environment variables to configure `envhttpd`
-
-* `ENVHTTPD_PORT`: Which TCP port to run the web server on
-* `ENVHTTPD_INCLUDE`: A bar-delimited list of shell glob matching patterns for
-  environment variables to be served from the web server. Defaults to `*`, which
-  will match any environment variable not on the `ENVHTTPD_EXCLUDE`
-* `ENVHTTPD_EXCLUDE`: Likewise, a bar-delimited list of globs for variables to
-  exclude from being served. Defaults to excude common system and envhttpd
-  variables.
-
-### /etc/envhttpd.conf
-
-Likewise there are counterparts to the above environment variables in
-`/etc/envhttpd.conf` called `port`, `include` and `exclude`. You can provide
-values by mounting your own configuration file to this path. ENVHTTPD_*
-environment variables will override those provided in the conf file.
+## Command-Line Help
 
 ```
-# What port number to run the HTTP server on
-port=8111
+$ envhttpd -h
+Usage: envhttpd [OPTIONS]
 
-# Which environment variables to include, shell style globbing, bar delimited
-# This list is processed first, a variable must match in order to be output
-include=*
+envhttpd is a lightweight HTTP server designed to expose env vars
+in HTML, JSON, YAML, and evaluatable shell formats. It allows
+filtering of environment variables based on inclusion and exclusion
+patterns to control what is exposed.
 
-# Which environment variables to exclude, shell style globbing, bar delimited
-# This list is processed second, a variable cannot match this list to be output
-# Default is all base system variables along with ENVHTTPD_*
-exclude=HOME|HOSTNAME|PATH|PWD|ENVHTTPD_*
+Options:
+  -p PORT      Specify the port number the server listens on.
+               Default is 8111.
+  -i PATTERN   Include env vars matching the specified PATTERN.
+               Supports glob patterns (e.g., USER*, PATH).
+  -x PATTERN   Exclude env vars matching the specified PATTERN.
+               Supports glob patterns (e.g., DEBUG*, TEMP).
+  -d           Run the server as a daemon in the background.
+               (Does not make sense in a docker container)
+  -D           Enable debug mode logging and text/plain responses.
+  -H HOSTNAME  Specify the hostname of the server.
+  -h           Display this help message and exit.
+
+Endpoints:
+  /             Displays a web page listing all included env vars.
+  /json         Gets env vars in JSON format.
+  /json?pretty  Gets env vars in pretty-printed JSON format.
+  /yaml         Gets env vars in YAML format.
+  /sh           Gets env vars in shell evaluatable format.
+  /sh?export    Gets env vars as shell with `export` prefix.
+  /var/VARNAME  Gets the value of the specified env var.
 ```
-
-## Known Issues / Caveats
-
-* All content (even JSON) is served as text/plain, it is a limitation of
-  busybox httpd that only one index file can be created. I may switch to CGI
-  at a later point to remedy.
-* Special characters will be stripped from environment variable names for
-  direct endpoints.
 
 ## Author
 
 [Kilna, Anthony](http://github.com/kilna)
 [kilna@kilna.com](mailto:kilna@kilna.com)
-
-
