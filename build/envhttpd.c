@@ -99,7 +99,10 @@ int main(int argc, char *argv[]) {
         printf("  -p PORT      Specify the port number the server listens on.\n");
         printf("               Default is 8111.\n");
         printf("  -i PATTERN   Include env vars matching the specified PATTERN.\n");
-        printf("               Supports glob patterns (e.g., USER*, PATH).\n");
+        printf("               Supports glob patterns (e.g., APPNAME_*, \n");
+        printf("               Default behavior is to include all env vars except\n");
+        printf("               PATH and HOME since they're largely not relevant outside\n");
+        printf("               of a container.\n");
         printf("  -x PATTERN   Exclude env vars matching the specified PATTERN.\n");
         printf("               Supports glob patterns (e.g., DEBUG*, TEMP).\n");
         printf("  -d           Run the server as a daemon in the background.\n");
@@ -337,14 +340,12 @@ void serve_homepage(int client_socket) {
 
 void serve_json(int client_socket, int pretty) {
   char *content_type = debug ? "text/json" : "application/json";
-
   char *json = pretty ? strdup("{\n") : strdup("{");
   if (!json) {
     perror("strdup failed");
     close(client_socket);
     return;
   }
-
   for (int i = 0; i < env_var_count; i++) {
     char *escaped_value = escape_json(env_vars[i].value);
     if (!escaped_value) {
@@ -405,14 +406,12 @@ void serve_yaml(int client_socket) {
     } else {
       escaped_key = strdup(env_vars[i].key);
     }
-
     char *escaped_value;
     if (needs_yaml_quoting(env_vars[i].value)) {
       escaped_value = escape_yaml(env_vars[i].value);
     } else {
       escaped_value = strdup(env_vars[i].value);
     }
-
     if (!escaped_key || !escaped_value) {
       perror("escape_yaml failed");
       free(yaml);
@@ -421,7 +420,6 @@ void serve_yaml(int client_socket) {
       close(client_socket);
       return;
     }
-
     strcat(yaml, escaped_key);
     strcat(yaml, ": ");
     strcat(yaml, escaped_value);
