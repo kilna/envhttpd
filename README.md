@@ -1,4 +1,4 @@
-# <img src="build/icon.png" style="height: 1em; vertical-align: middle;" /> envhttpd
+# envhttpd <img src="build/icon.png" style="height: 1em; vertical-align: middle;" />
 
 **A Dockerized HTTPD to Serve Environment Variables**
 
@@ -112,7 +112,10 @@ Options:
   -p PORT      Specify the port number the server listens on.
                Default is 8111.
   -i PATTERN   Include env vars matching the specified PATTERN.
-               Supports glob patterns (e.g., USER*, PATH).
+               Supports glob patterns (e.g., APPNAME_*).
+               Default behavior is to include all env vars except
+               PATH and HOME since they're largely not relevant outside
+               of a container.
   -x PATTERN   Exclude env vars matching the specified PATTERN.
                Supports glob patterns (e.g., DEBUG*, TEMP).
   -d           Run the server as a daemon in the background.
