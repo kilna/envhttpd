@@ -10,7 +10,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "style.h"
+#include "template.h"
 
 #define PORT 8111
 #define BUFFER_SIZE 1024
@@ -18,11 +18,11 @@
 #define MAX_ENV_VARS 1000
 #define DEFAULT_HOSTNAME "localhost"
 
-// Add a prototype for handle_client
-void handle_client(int client_socket);
-
 // Configuration variables
 int server_port = PORT;
+int debug = 0;
+int daemonize = 0;
+char *hostname = DEFAULT_HOSTNAME;
 
 // Define a structure to hold pattern and its type
 typedef enum {
@@ -49,54 +49,26 @@ typedef struct {
 EnvVar env_vars[MAX_ENV_VARS];
 int env_var_count = 0;
 
-// Add global variables for debug and daemon
-int debug = 0;
-int daemonize = 0;
-
-// Add a global variable for hostname
-char *hostname = DEFAULT_HOSTNAME;
-
-// Function to add patterns to the pattern_actions array
-void add_patterns(char *spec, PatternType type) {
-  if (pattern_action_count < MAX_PATTERNS) {
-    pattern_actions[pattern_action_count].type = type;
-    pattern_actions[pattern_action_count].pattern = strdup(spec);
-    pattern_action_count++;
-  }
-}
-
-// Function to load and filter env vars at startup
-void load_environment() {
-  extern char **environ;
-  for (char **env = environ; *env && env_var_count < MAX_ENV_VARS; ++env) {
-    char *env_entry = strdup(*env); // Duplicate to avoid modifying original
-    char *key = strtok(env_entry, "=");
-    char *value = strtok(NULL, "");
-    if (key && value) {
-      int include = 1; // Default to include
-      // Exclude PATH and HOME by default
-      if (strcmp(key, "PATH") == 0 || strcmp(key, "HOME") == 0) {
-        include = 0;
-      }
-      // Apply command-line include and exclude patterns
-      for (int i = 0; i < pattern_action_count; i++) {
-        if (fnmatch(pattern_actions[i].pattern, key, 0) == 0) {
-          if (pattern_actions[i].type == PATTERN_INCLUDE) {
-            include = 1;
-          } else if (pattern_actions[i].type == PATTERN_EXCLUDE) {
-            include = 0;
-          }
-        }
-      }
-      if (include) {
-        env_vars[env_var_count].key = strdup(key);
-        env_vars[env_var_count].value = strdup(value);
-        env_var_count++;
-      }
-    }
-    free(env_entry);
-  }
-}
+// Function prototypes
+void handle_client(int client_socket);
+void add_patterns(char *spec, PatternType type);
+void load_environment();
+void send_response(int client_socket, const char *content_type, const char *response);
+void send_error_response(int client_socket, const char *status, const char *message);
+void serve_file(int client_socket, const char *file_path, const char *content_type);
+void handle_get_request(int client_socket, const char *path);
+void handle_var_request(int client_socket, const char *var_name);
+void serve_homepage(int client_socket);
+void serve_json(int client_socket, int pretty);
+void serve_yaml(int client_socket);
+void serve_shell(int client_socket, int export_mode);
+char *escape_json(const char *input);
+char *escape_html(const char *input);
+char *escape_yaml(const char *input);
+char *escape_env(const char *input);
+char *escape_url(const char *src);
+char* get_env_var_value(const char *key);
+int needs_yaml_quoting(const char *value);
 
 int main(int argc, char *argv[]) {
   int opt;
@@ -226,25 +198,329 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
+void handle_client(int client_socket) {
+  if (debug) {
+    printf("Handling new client (socket %d).\n", client_socket);
+    fflush(stdout);
+  }
+  char buffer[BUFFER_SIZE];
+  ssize_t bytes_read = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+  if (bytes_read < 0) {
+    perror("recv failed");
+    close(client_socket);
+    return;
+  }
+  buffer[bytes_read] = '\0';
+  char method[8];
+  char path[BUFFER_SIZE];
+  sscanf(buffer, "%s %s", method, path);
+  if (debug) {
+    printf("Received request: Method=%s, Path=%s\n", method, path);
+    fflush(stdout);
+  }
+  if (strcmp(method, "GET") == 0) {
+    handle_get_request(client_socket, path);
+  } else {
+    send_error_response(client_socket, "405 Method Not Allowed", "Method Not Allowed");
+  }
+  close(client_socket);
+}
+
+void handle_get_request(int client_socket, const char *path) {
+  if (strcmp(path, "/style.css") == 0) {
+    serve_file(client_socket, "/var/www/style.css", "text/css");
+  } else if (strcmp(path, "/icon.png") == 0) {
+    serve_file(client_socket, "/var/www/icon.png", "image/png");
+  } else if (strncmp(path, "/var/", 5) == 0) {
+    handle_var_request(client_socket, path + 5);
+  } else if (strcmp(path, "/") == 0) {
+    serve_homepage(client_socket);
+  } else if (strcmp(path, "/json") == 0 || strcmp(path, "/json?pretty") == 0) {
+    serve_json(client_socket, strcmp(path, "/json?pretty") == 0);
+  } else if (strcmp(path, "/yaml") == 0) {
+    serve_yaml(client_socket);
+  } else if (strcmp(path, "/sh") == 0 || strcmp(path, "/sh?export") == 0) {
+    serve_shell(client_socket, strcmp(path, "/sh?export") == 0);
+  } else {
+    send_error_response(client_socket, "404 Not Found", "Not Found");
+  }
+}
+
+void handle_var_request(int client_socket, const char *var_name) {
+  char *end = strchr(var_name, '?');
+  if (end) { *end = '\0'; }
+  if (debug) {
+    printf("Fetching environment variable: %s\n", var_name);
+  }
+  char *value = get_env_var_value(var_name);
+  if (value) {
+    send_response(client_socket, "text/plain", value);
+  } else {
+    send_error_response(client_socket, "404 Not Found", "Variable Not Found");
+  }
+}
+
+void serve_homepage(int client_socket) {
+  char *title;
+  if (asprintf(&title, "%s - envhttpd", hostname) == -1) {
+    perror("asprintf failed");
+    close(client_socket);
+    return;
+  }
+
+  char *table_rows = strdup("");
+  if (!table_rows) {
+    perror("strdup failed");
+    free(title);
+    close(client_socket);
+    return;
+  }
+  for (int i = 0; i < env_var_count; i++) {
+    char *escaped_key = escape_html(env_vars[i].key);
+    char *escaped_value = escape_html(env_vars[i].value);
+    if (!escaped_key || !escaped_value) {
+      perror("escape_html failed");
+      free(title);
+      free(table_rows);
+      free(escaped_key);
+      free(escaped_value);
+      close(client_socket);
+      return;
+    }
+
+    char *url_encoded_key = escape_url(env_vars[i].key);
+    if (!url_encoded_key) {
+      perror("URL encoding failed");
+      free(title);
+      free(table_rows);
+      free(escaped_key);
+      free(escaped_value);
+      close(client_socket);
+      return;
+    }
+
+    char *new_table_rows;
+    if (asprintf(&new_table_rows, "%s<tr><td><strong><a href=\"/var/%s\">%s</a></strong></td><td><pre>%s</pre></td></tr>\n",
+                 table_rows, url_encoded_key, escaped_key, escaped_value) == -1) {
+      perror("asprintf failed");
+      free(title);
+      free(table_rows);
+      free(escaped_key);
+      free(escaped_value);
+      free(url_encoded_key);
+      close(client_socket);
+      return;
+    }
+
+    free(table_rows);
+    free(escaped_key);
+    free(escaped_value);
+    free(url_encoded_key);
+    table_rows = new_table_rows;
+  }
+
+  char *html;
+  if (asprintf(&html, template, title, table_rows) == -1) {
+    perror("asprintf failed");
+    free(title);
+    free(table_rows);
+    close(client_socket);
+    return;
+  }
+
+  free(title);
+  free(table_rows);
+
+  send_response(client_socket, "text/html", html);
+  free(html);
+}
+
+void serve_json(int client_socket, int pretty) {
+  char *content_type = debug ? "text/json" : "application/json";
+
+  char *json = pretty ? strdup("{\n") : strdup("{");
+  if (!json) {
+    perror("strdup failed");
+    close(client_socket);
+    return;
+  }
+
+  for (int i = 0; i < env_var_count; i++) {
+    char *escaped_value = escape_json(env_vars[i].value);
+    if (!escaped_value) {
+      perror("escape_json failed");
+      free(json);
+      close(client_socket);
+      return;
+    }
+    char *new_json;
+    if (pretty) {
+      if (asprintf(&new_json, "%s  \"%s\": \"%s\",\n", json, env_vars[i].key, escaped_value) == -1) {
+        perror("asprintf failed");
+        free(json);
+        free(escaped_value);
+        close(client_socket);
+        return;
+      }
+    } else {
+      if (asprintf(&new_json, "%s\"%s\":\"%s\",", json, env_vars[i].key, escaped_value) == -1) {
+        perror("asprintf failed");
+        free(json);
+        free(escaped_value);
+        close(client_socket);
+        return;
+      }
+    }
+    free(json);
+    free(escaped_value);
+    json = new_json;
+  }
+  if (strlen(json) > 3) {
+    if (pretty) { json[strlen(json) - 2] = '\n'; }
+    json[strlen(json) - 1] = '}';
+  } else {
+    strcpy(json, "{}");
+  }
+  send_response(client_socket, content_type, json);
+  free(json);
+}
+
+void serve_yaml(int client_socket) {
+  char *content_type = debug ? "text/yaml" : "application/yaml";
+  size_t yaml_size = 0;
+  for (int i = 0; i < env_var_count; i++) {
+    yaml_size += strlen(env_vars[i].key) + strlen(env_vars[i].value) * 2 + 5;
+  }
+  char *yaml = malloc(yaml_size + 4 + 1);
+  if (!yaml) {
+    perror("malloc failed");
+    close(client_socket);
+    return;
+  }
+  strcpy(yaml, "---\n");
+  for (int i = 0; i < env_var_count; i++) {
+    char *escaped_key;
+    if (needs_yaml_quoting(env_vars[i].key)) {
+      escaped_key = escape_yaml(env_vars[i].key);
+    } else {
+      escaped_key = strdup(env_vars[i].key);
+    }
+
+    char *escaped_value;
+    if (needs_yaml_quoting(env_vars[i].value)) {
+      escaped_value = escape_yaml(env_vars[i].value);
+    } else {
+      escaped_value = strdup(env_vars[i].value);
+    }
+
+    if (!escaped_key || !escaped_value) {
+      perror("escape_yaml failed");
+      free(yaml);
+      free(escaped_key);
+      free(escaped_value);
+      close(client_socket);
+      return;
+    }
+
+    strcat(yaml, escaped_key);
+    strcat(yaml, ": ");
+    strcat(yaml, escaped_value);
+    strcat(yaml, "\n");
+    free(escaped_key);
+    free(escaped_value);
+  }
+  send_response(client_socket, content_type, yaml);
+  free(yaml);
+}
+
+void serve_shell(int client_socket, int export_mode) {
+  size_t env_size = 0;
+  for (int i = 0; i < env_var_count; i++) {
+    env_size += strlen(env_vars[i].key) + strlen(env_vars[i].value) * 2 + 3;
+    if (export_mode) {
+      env_size += 7;
+    }
+  }
+  char *env_content = malloc(env_size + 1);
+  if (!env_content) {
+    perror("malloc failed");
+    close(client_socket);
+    return;
+  }
+  env_content[0] = '\0';
+  for (int i = 0; i < env_var_count; i++) {
+    if (export_mode) {
+      strcat(env_content, "export ");
+    }
+    strcat(env_content, env_vars[i].key);
+    strcat(env_content, "=\"");
+    char *escaped_value = escape_env(env_vars[i].value);
+    if (!escaped_value) {
+      perror("escape_env failed");
+      free(env_content);
+      close(client_socket);
+      return;
+    }
+    strcat(env_content, escaped_value);
+    strcat(env_content, "\"\n");
+    free(escaped_value);
+  }
+  send_response(client_socket, "text/plain", env_content);
+  free(env_content);
+}
+
+void add_patterns(char *spec, PatternType type) {
+  if (pattern_action_count < MAX_PATTERNS) {
+    pattern_actions[pattern_action_count].type = type;
+    pattern_actions[pattern_action_count].pattern = strdup(spec);
+    pattern_action_count++;
+  }
+}
+
+void load_environment() {
+  extern char **environ;
+  for (char **env = environ; *env && env_var_count < MAX_ENV_VARS; ++env) {
+    char *env_entry = strdup(*env);
+    char *key = strtok(env_entry, "=");
+    char *value = strtok(NULL, "");
+    if (key && value) {
+      int include = 1;
+      if (strcmp(key, "PATH") == 0 || strcmp(key, "HOME") == 0) {
+        include = 0;
+      }
+      for (int i = 0; i < pattern_action_count; i++) {
+        if (fnmatch(pattern_actions[i].pattern, key, 0) == 0) {
+          if (pattern_actions[i].type == PATTERN_INCLUDE) {
+            include = 1;
+          } else if (pattern_actions[i].type == PATTERN_EXCLUDE) {
+            include = 0;
+          }
+        }
+      }
+      if (include) {
+        env_vars[env_var_count].key = strdup(key);
+        env_vars[env_var_count].value = strdup(value);
+        env_var_count++;
+      }
+    }
+    free(env_entry);
+  }
+}
+
 void send_response(int client_socket, const char *content_type, const char *response) {
-  // Ensure the response ends with a newline
   size_t response_len = strlen(response);
-  int needs_newline = 0; // Set to 0 to avoid adding a newline
-  // Calculate the size needed for headers
   int header_length = snprintf(NULL, 0,
                                "HTTP/1.1 200 OK\r\n"
                                "Content-Type: %s; charset=utf-8\r\n"
                                "Content-Length: %zu\r\n"
                                "Hostname: %s\r\n"
                                "\r\n",
-                               content_type, response_len, hostname) + 1; // +1 for null terminator
-  // Allocate memory for headers
+                               content_type, response_len, hostname) + 1;
   char *header_buffer = malloc(header_length);
   if (!header_buffer) {
     perror("malloc failed");
     return;
   }
-  // Write headers into the allocated buffer
   snprintf(header_buffer, header_length,
            "HTTP/1.1 200 OK\r\n"
            "Content-Type: %s; charset=utf-8\r\n"
@@ -252,17 +528,15 @@ void send_response(int client_socket, const char *content_type, const char *resp
            "Hostname: %s\r\n"
            "\r\n",
            content_type, response_len, hostname);
-  // Send headers
-  if (send(client_socket, header_buffer, header_length - 1, 0) < 0) { // -1 to exclude null terminator
+  if (send(client_socket, header_buffer, header_length - 1, 0) < 0) {
     perror("send headers failed");
     free(header_buffer);
     return;
   }
   free(header_buffer);
-  // Send the response body without an optional newline
   size_t total_sent = 0;
-  size_t total_length = response_len; // No newline added
-  char *response_with_newline = (char *)response; // Use original response
+  size_t total_length = response_len;
+  char *response_with_newline = (char *)response;
 
   while (total_sent < total_length) {
     size_t chunk_size = (
@@ -279,137 +553,6 @@ void send_response(int client_socket, const char *content_type, const char *resp
   }
 }
 
-char *escape_json(const char *input) {
-  size_t len = strlen(input);
-  char *escaped = malloc(len * 2 + 1); // Allocate enough memory
-  char *p = escaped;
-  for (const char *s = input; *s; s++) {
-    switch (*s) {
-      case '\\': *p++ = '\\'; *p++ = '\\'; break;
-      case '\"': *p++ = '\\'; *p++ = '\"'; break;
-      case '\b': *p++ = '\\'; *p++ = 'b'; break;
-      case '\f': *p++ = '\\'; *p++ = 'f'; break;
-      case '\n': *p++ = '\\'; *p++ = 'n'; break;
-      case '\r': *p++ = '\\'; *p++ = 'r'; break;
-      case '\t': *p++ = '\\'; *p++ = 't'; break;
-      default: *p++ = *s; break;
-    }
-  }
-  *p = '\0';
-  return escaped;
-}
-
-char* get_env_var_value(const char *key) {
-  for (int i = 0; i < env_var_count; i++) {
-    if (strcmp(env_vars[i].key, key) == 0) { return env_vars[i].value; }
-  }
-  return NULL;
-}
-
-// Function to URL-encode a string
-char* escape_url(const char *src) {
-  // Calculate the maximum possible length of the encoded string
-  size_t src_len = strlen(src);
-  // In the worst case, every character needs to be encoded, so allocate 3 times the length plus 1 for the null terminator
-  char *enc = malloc(src_len * 3 + 1);
-  if (!enc) { return NULL; } // Allocation failed
-  char *penc = enc;
-  for (; *src; src++) {
-    if (isalnum((unsigned char)*src) || 
-        *src == '-' || *src == '_' || *src == '.' || *src == '~') {
-      *penc++ = *src;
-    } else {
-      sprintf(penc, "%%%02X", (unsigned char)*src);
-      penc += 3;
-    }
-  }
-  *penc = '\0';
-  return enc;
-}
-
-// New function prototypes
-char *escape_html(const char *input);
-char *escape_yaml(const char *input);
-char *escape_env(const char *input);
-
-// Add escape_html function
-char *escape_html(const char *input) {
-  size_t len = strlen(input);
-  // Allocate enough memory for the worst case (all characters need escaping)
-  char *escaped = malloc(len * 6 + 1); // &quot; is the longest escape sequence
-  if (!escaped) { return NULL; }
-  char *p = escaped;
-  for (const char *s = input; *s; s++) {
-    switch (*s) {
-      case '&': strcpy(p, "&amp;"); p += 5; break;
-      case '<': strcpy(p, "&lt;"); p += 4; break;
-      case '>': strcpy(p, "&gt;"); p += 4; break;
-      case '\"': strcpy(p, "&quot;"); p += 6; break;
-      case '\'': strcpy(p, "&#39;"); p += 5; break;
-      default: *p++ = *s; break;
-    }
-  }
-  *p = '\0';
-  return escaped;
-}
-
-// Add escape_yaml function
-char *escape_yaml(const char *input) {
-  size_t len = strlen(input);
-  // Allocate memory: worst case every character is escaped
-  char *escaped = malloc(len * 2 + 3); // Quotes added
-  if (!escaped) { return NULL; }
-  char *p = escaped;
-  *p++ = '\"';
-  for (const char *s = input; *s; s++) {
-    if (*s == '\"' || *s == '\\') { *p++ = '\\'; }
-    if (*s == '\n') { *p++ = '\\'; *p++ = 'n'; } else { *p++ = *s; }
-  }
-  *p++ = '\"';
-  *p = '\0';
-  return escaped;
-}
-
-// Add escape_env function
-char *escape_env(const char *input) {
-  size_t len = strlen(input);
-  // Allocate memory: worst case every character is escaped
-  char *escaped = malloc(len * 2 + 1);
-  if (!escaped) { return NULL; }
-  char *p = escaped;
-  for (const char *s = input; *s; s++) {
-    if (*s == '\\' || *s == '\"' || *s == '\n') { *p++ = '\\'; }
-    *p++ = *s;
-  }
-  *p = '\0';
-  return escaped;
-}
-
-// Add this function above the handle_client function or in an appropriate location
-int needs_yaml_quoting(const char *value) {
-  const char *special_chars = ":{}[],&*#?|-<>=!%@\\\"'\n";
-  // Check if the value contains any special characters
-  for (const char *s = value; *s; s++) {
-    if (strchr(special_chars, *s)) {
-      return 1;
-    }
-  }
-  // Check if the value starts with a special character or is a reserved word
-  const char *reserved_words[] = {
-    "true", "false", "null", "yes", "no", "on", "off", NULL
-  };
-  for (int i = 0; reserved_words[i] != NULL; i++) {
-    if (strcasecmp(value, reserved_words[i]) == 0) {
-      return 1;
-    }
-  }
-  // Check if the value is empty
-  if (value[0] == '\0') {
-    return 1; // Empty value should be quoted
-  }
-  return 0; // No quoting needed
-}
-
 void send_error_response(int client_socket, const char *status, const char *message) {
   char buffer[BUFFER_SIZE];
   snprintf(buffer, sizeof(buffer),
@@ -419,41 +562,8 @@ void send_error_response(int client_socket, const char *status, const char *mess
            "\r\n"
            "%s\n", status, strlen(message) + 1, message);
   send(client_socket, buffer, strlen(buffer), 0);
-  close(client_socket);
 }
 
-void serve_favicon(int client_socket) {
-  FILE *file = fopen("/var/www/icon.png", "rb");
-  if (!file) {
-    perror("fopen failed");
-    send_error_response(client_socket, "404 Not Found", "Not Found");
-    return;
-  }
-  fseek(file, 0, SEEK_END);
-  long file_size = ftell(file);
-  fseek(file, 0, SEEK_SET);
-  char *file_content = malloc(file_size);
-  if (!file_content) {
-    perror("malloc failed");
-    fclose(file);
-    close(client_socket);
-    return;
-  }
-  fread(file_content, 1, file_size, file);
-  fclose(file);
-  char header[BUFFER_SIZE];
-  snprintf(header, sizeof(header),
-           "HTTP/1.1 200 OK\r\n"
-           "Content-Type: image/png\r\n"
-           "Content-Length: %ld\r\n"
-           "\r\n", file_size);
-  send(client_socket, header, strlen(header), 0);
-  send(client_socket, file_content, file_size, 0);
-  free(file_content);
-  close(client_socket);
-}
-
-// Add a common function to serve files
 void serve_file(int client_socket, const char *file_path, const char *content_type) {
   FILE *file = fopen(file_path, "rb");
   if (!file) {
@@ -482,361 +592,117 @@ void serve_file(int client_socket, const char *file_path, const char *content_ty
   send(client_socket, header, strlen(header), 0);
   send(client_socket, file_content, file_size, 0);
   free(file_content);
-  close(client_socket);
 }
 
-// Update the handle_client function to use serve_file for /icon.png and /style.css
-void handle_client(int client_socket) {
-  if (debug) {
-    printf("Handling new client (socket %d).\n", client_socket);
-    fflush(stdout);
-  }
-  char buffer[BUFFER_SIZE];
-  ssize_t bytes_read = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
-  if (bytes_read < 0) {
-    perror("recv failed");
-    close(client_socket);
-    return;
-  }
-  buffer[bytes_read] = '\0';
-  char method[8];
-  char path[BUFFER_SIZE];
-  sscanf(buffer, "%s %s", method, path);
-  if (debug) {
-    printf("Received request: Method=%s, Path=%s\n", method, path);
-    fflush(stdout);
-  }
-  if (strcmp(method, "GET") != 0) {
-    const char *response = "Method Not Allowed";
-    snprintf(buffer, sizeof(buffer),
-             "HTTP/1.1 405 Method Not Allowed\r\n"
-             "Content-Type: text/plain; charset=utf-8\r\n"
-             "Content-Length: %zu\r\n"
-             "\r\n"
-             "%s\n",
-             strlen(response) + 1, response);
-    send(client_socket, buffer, strlen(buffer), 0);
-    close(client_socket);
-    return;
-  }
-
-  // Handle /style.css
-  if (strcmp(path, "/style.css") == 0) {
-    serve_file(client_socket, "/var/www/style.css", "text/css");
-    return;
-  }
-
-  // Handle /icon.png
-  if (strcmp(path, "/icon.png") == 0) {
-    serve_file(client_socket, "/var/www/icon.png", "image/png");
-    return;
-  }
-
-  // Handle /var/VARNAME
-  if (strncmp(path, "/var/", 5) == 0) {
-    char *var_name = path + 5;
-    char *end = strchr(var_name, '?');
-    if (end) { *end = '\0'; }
-    if (debug) {
-      printf("Fetching environment variable: %s\n", var_name);
+char *escape_json(const char *input) {
+  size_t len = strlen(input);
+  char *escaped = malloc(len * 2 + 1);
+  char *p = escaped;
+  for (const char *s = input; *s; s++) {
+    switch (*s) {
+      case '\\': *p++ = '\\'; *p++ = '\\'; break;
+      case '\"': *p++ = '\\'; *p++ = '\"'; break;
+      case '\b': *p++ = '\\'; *p++ = 'b'; break;
+      case '\f': *p++ = '\\'; *p++ = 'f'; break;
+      case '\n': *p++ = '\\'; *p++ = 'n'; break;
+      case '\r': *p++ = '\\'; *p++ = 'r'; break;
+      case '\t': *p++ = '\\'; *p++ = 't'; break;
+      default: *p++ = *s; break;
     }
-    char *value = get_env_var_value(var_name);
-    if (value) {
-      send_response(client_socket, "text/plain", value);
+  }
+  *p = '\0';
+  return escaped;
+}
+
+char *escape_html(const char *input) {
+  size_t len = strlen(input);
+  char *escaped = malloc(len * 6 + 1);
+  if (!escaped) { return NULL; }
+  char *p = escaped;
+  for (const char *s = input; *s; s++) {
+    switch (*s) {
+      case '&': strcpy(p, "&amp;"); p += 5; break;
+      case '<': strcpy(p, "&lt;"); p += 4; break;
+      case '>': strcpy(p, "&gt;"); p += 4; break;
+      case '\"': strcpy(p, "&quot;"); p += 6; break;
+      case '\'': strcpy(p, "&#39;"); p += 5; break;
+      default: *p++ = *s; break;
+    }
+  }
+  *p = '\0';
+  return escaped;
+}
+
+char *escape_yaml(const char *input) {
+  size_t len = strlen(input);
+  char *escaped = malloc(len * 2 + 3);
+  if (!escaped) { return NULL; }
+  char *p = escaped;
+  *p++ = '\"';
+  for (const char *s = input; *s; s++) {
+    if (*s == '\"' || *s == '\\') { *p++ = '\\'; }
+    if (*s == '\n') { *p++ = '\\'; *p++ = 'n'; } else { *p++ = *s; }
+  }
+  *p++ = '\"';
+  *p = '\0';
+  return escaped;
+}
+
+char *escape_env(const char *input) {
+  size_t len = strlen(input);
+  char *escaped = malloc(len * 2 + 1);
+  if (!escaped) { return NULL; }
+  char *p = escaped;
+  for (const char *s = input; *s; s++) {
+    if (*s == '\\' || *s == '\"' || *s == '\n') { *p++ = '\\'; }
+    *p++ = *s;
+  }
+  *p = '\0';
+  return escaped;
+}
+
+char *escape_url(const char *src) {
+  size_t src_len = strlen(src);
+  char *enc = malloc(src_len * 3 + 1);
+  if (!enc) { return NULL; }
+  char *penc = enc;
+  for (; *src; src++) {
+    if (isalnum((unsigned char)*src) || 
+        *src == '-' || *src == '_' || *src == '.' || *src == '~') {
+      *penc++ = *src;
     } else {
-      send_error_response(client_socket, "404 Not Found", "Variable Not Found"); // Use the new function
+      sprintf(penc, "%%%02X", (unsigned char)*src);
+      penc += 3;
     }
-    close(client_socket);
-    return;
   }
+  *penc = '\0';
+  return enc;
+}
 
-  // Handle /
-  if (strcmp(path, "/") == 0) {
-    // Start building HTML content
-    char *html = strdup("<!DOCTYPE html>\n<html>\n<head>\n<title>");
-    if (!html) {
-      perror("strdup failed");
-      close(client_socket);
-      return;
-    }
-    char *temp; // Use a different name if tmp is already declared
-    if (asprintf(&temp, "%s%s - envhttpd</title>\n<meta charset=\"UTF-8\">\n", html, hostname) == -1) {
-      perror("asprintf failed");
-      close(client_socket);
-      return;
-    }
-    free(html);
-    html = temp;
-
-    char *tmp;
-    if (asprintf(&tmp, "%s<link rel=\"icon\" type=\"image/png\" href=\"/icon.png\">\n"
-                     "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">\n"
-                     "</head>\n<body>\n", html) == -1) {
-      perror("asprintf failed");
-      free(html);
-      close(client_socket);
-      return;
-    }
-    free(html);
-    html = tmp;
-
-    // Append header and start table
-    if (asprintf(&tmp, "%s<table>\n", html) == -1) {
-      perror("asprintf failed");
-      free(html);
-      close(client_socket);
-      return;
-    }
-    free(html);
-    html = tmp;
-
-    // Add table headers
-    if (asprintf(&tmp, "%s  <tr><th>Name</th><th>Value</th></tr>\n", html) == -1) {
-      perror("asprintf failed");
-      free(html);
-      close(client_socket);
-      return;
-    }
-    free(html);
-    html = tmp;
-
-    // Append each environment variable as a table row
-    for (int i = 0; i < env_var_count; i++) {
-      char *escaped_key = escape_html(env_vars[i].key);
-      char *escaped_value = escape_html(env_vars[i].value);
-      if (!escaped_key || !escaped_value) {
-        perror("escape_html failed");
-        free(html);
-        free(escaped_key);
-        free(escaped_value);
-        close(client_socket);
-        return;
-      }
-
-      // Properly URL encode the key for the href attribute
-      char *url_encoded_key = escape_url(env_vars[i].key);
-      if (!url_encoded_key) {
-        perror("URL encoding failed");
-        free(html);
-        free(escaped_key);
-        free(escaped_value);
-        close(client_socket);
-        return;
-      }
-
-      // Wrap the value in <pre> tags with appropriate escaping
-      if (asprintf(&tmp, "%s  <tr><td><strong><a href=\"/var/%s\">%s</a></strong></td><td><pre>%s</pre></td></tr>\n",
-                   html, url_encoded_key, escaped_key, escaped_value) == -1) {
-        perror("asprintf failed");
-        free(html);
-        free(escaped_key);
-        free(escaped_value);
-        free(url_encoded_key);
-        close(client_socket);
-        return;
-      }
-
-      free(html);
-      free(escaped_key);
-      free(escaped_value);
-      free(url_encoded_key);
-      html = tmp;
-    }
-
-    // Append closing table tag and additional information
-    if (asprintf(&tmp, "%s</table>\n<ul>\n"
-        "  <li><a href=\"/json?pretty\">JSON</a></li>\n"
-        "  <li><a href=\"/sh?export\">SHELL</a></li>\n"
-        "  <li><a href=\"/yaml\">YAML</a></li>\n"
-        "</ul>\n"
-        "<footer>\n"
-        "<div class=\"footer-name\">\n"
-        "<a href=\"https://github.com/kilna/envhttpd\" target=\"_blank\">"
-        "<img src=\"/icon.png\"/></a> envhttpd by Kilna\n"
-        "</div>\n"
-        "<div class=\"footer-badges\">\n"
-        "<a href=\"https://hub.docker.com/r/kilna/envhttpd\" target=\"_blank\">"
-        "<img src=\"https://img.shields.io/badge/DockerHub-kilna/envhttpd-blue?logo=docker\"/></a>\n"
-        "<a href=\"https://github.com/kilna/envhttpd\" target=\"_blank\">"
-        "<img src=\"https://img.shields.io/badge/GitHub-kilna/envhttpd-green?logo=github\"/></a>\n"
-        "</div>\n"
-        "</footer>\n"
-        "</body>\n</html>\n", html) == -1) { // Ensured trailing newline
-      perror("asprintf failed");
-      free(html);
-      close(client_socket);
-      return;
-    }
-    free(html);
-    html = tmp;
-
-    // Send the HTML response
-    send_response(client_socket, "text/html", html);
-    free(html);
-    close(client_socket);
-    return;
+char* get_env_var_value(const char *key) {
+  for (int i = 0; i < env_var_count; i++) {
+    if (strcmp(env_vars[i].key, key) == 0) { return env_vars[i].value; }
   }
+  return NULL;
+}
 
-  // Handle /json
-  if (strcmp(path, "/json") == 0 || strcmp(path, "/json?pretty") == 0) {
-    char *content_type = debug ? "text/json" : "application/json";
-
-    int pretty = 0; // Flag for pretty printing
-    if (strcmp(path, "/json?pretty") == 0) { pretty = 1; }
-
-    char *json = pretty ? strdup("{\n") : strdup("{");
-    if (!json) {
-      perror("strdup failed");
-      close(client_socket);
-      return;
+int needs_yaml_quoting(const char *value) {
+  const char *special_chars = ":{}[],&*#?|-<>=!%@\\\"'\n";
+  for (const char *s = value; *s; s++) {
+    if (strchr(special_chars, *s)) {
+      return 1;
     }
-
-    for (int i = 0; i < env_var_count; i++) {
-      char *escaped_value = escape_json(env_vars[i].value);
-      if (!escaped_value) {
-        perror("escape_json failed");
-        free(json);
-        close(client_socket);
-        return;
-      }
-      char *new_json;
-      if (pretty) {
-        if (asprintf(&new_json, "%s  \"%s\": \"%s\",\n", json, env_vars[i].key, escaped_value) == -1) {
-          perror("asprintf failed");
-          free(json);
-          free(escaped_value);
-          close(client_socket);
-          return;
-        }
-      } else {
-        if (asprintf(&new_json, "%s\"%s\":\"%s\",", json, env_vars[i].key, escaped_value) == -1) {
-          perror("asprintf failed");
-          free(json);
-          free(escaped_value);
-          close(client_socket);
-          return;
-        }
-      }
-      free(json);
-      free(escaped_value);
-      json = new_json;
-    }
-    if (strlen(json) > 3) {
-      if (pretty) { json[strlen(json) - 2] = '\n'; }
-      json[strlen(json) - 1] = '}';
-    } else {
-      strcpy(json, "{}");
-    }
-    send_response(client_socket, content_type, json);
-    free(json);
-    close(client_socket);
-    return;
   }
-
-  // Handle /yaml
-  if (strcmp(path, "/yaml") == 0) {
-    char *content_type = debug ? "text/yaml" : "application/yaml";
-    // Build YAML content with proper conditional quoting
-    size_t yaml_size = 0;
-    for (int i = 0; i < env_var_count; i++) {
-      // Estimate size: key + ": " + value + "\n"
-      yaml_size += strlen(env_vars[i].key) + strlen(env_vars[i].value) * 2 + 5;
+  const char *reserved_words[] = {
+    "true", "false", "null", "yes", "no", "on", "off", NULL
+  };
+  for (int i = 0; reserved_words[i] != NULL; i++) {
+    if (strcasecmp(value, reserved_words[i]) == 0) {
+      return 1;
     }
-    char *yaml = malloc(yaml_size + 4 + 1); // 4 for '---\n' and null terminator
-    if (!yaml) {
-      perror("malloc failed");
-      close(client_socket);
-      return;
-    }
-    strcpy(yaml, "---\n");
-    for (int i = 0; i < env_var_count; i++) {
-      char *escaped_key;
-      if (needs_yaml_quoting(env_vars[i].key)) {
-        escaped_key = escape_yaml(env_vars[i].key);
-      } else {
-        escaped_key = strdup(env_vars[i].key);
-      }
-
-      char *escaped_value;
-      
-      if (needs_yaml_quoting(env_vars[i].value)) {
-        escaped_value = escape_yaml(env_vars[i].value);
-      } else {
-        escaped_value = strdup(env_vars[i].value);
-      }
-
-      if (!escaped_key || !escaped_value) {
-        perror("escape_yaml failed");
-        free(yaml);
-        free(escaped_key);
-        free(escaped_value);
-        close(client_socket);
-        return;
-      }
-
-      strcat(yaml, escaped_key);
-      strcat(yaml, ": ");
-      strcat(yaml, escaped_value);
-      strcat(yaml, "\n"); // Ensured trailing newline for each line
-      free(escaped_key);
-      free(escaped_value);
-    }
-    send_response(client_socket, content_type, yaml);
-    free(yaml);
-    close(client_socket);
-    return;
   }
-
-  // Handle /sh
-  if (strcmp(path, "/sh") == 0 || strcmp(path, "/sh?export") == 0) {
-    // Build .env content with proper escaping
-    size_t env_size = 0;
-    int export_mode = 0; // Flag for export mode
-
-    // Check if the request has the ?export option
-    if (strcmp(path, "/sh?export") == 0) { export_mode = 1; }
-
-    for (int i = 0; i < env_var_count; i++) {
-      env_size += strlen(env_vars[i].key) + strlen(env_vars[i].value) * 2 + 3; // KEY="VALUE"\n
-      if (export_mode) {
-        env_size += 7; // Additional space for "export " and newline
-      }
-    }
-    char *env_content = malloc(env_size + 1);
-    if (!env_content) {
-      perror("malloc failed");
-      close(client_socket);
-      return;
-    }
-    env_content[0] = '\0';
-    for (int i = 0; i < env_var_count; i++) {
-      if (export_mode) {
-        strcat(env_content, "export "); // Prepend "export "
-      }
-      strcat(env_content, env_vars[i].key);
-      strcat(env_content, "=\"");
-      char *escaped_value = escape_env(env_vars[i].value);
-      if (!escaped_value) {
-        perror("escape_env failed");
-        free(env_content);
-        close(client_socket);
-        return;
-      }
-      strcat(env_content, escaped_value);
-      strcat(env_content, "\"\n"); // Ensured trailing newline
-      free(escaped_value);
-    }
-    send_response(client_socket, "text/plain", env_content);
-    free(env_content);
-    close(client_socket);
-    return;
+  if (value[0] == '\0') {
+    return 1;
   }
-
-  // Handle unknown paths
-  send_error_response(client_socket, "404 Not Found", "Not Found"); // Use the new function
-
-  if (debug) {
-    printf("Finished handling client (socket %d).\n", client_socket);
-    fflush(stdout);
-  }
+  return 0;
 }

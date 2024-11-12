@@ -13,12 +13,12 @@ bin/tini:
 	cp -v $$(which tini) $@
 	cp -v $$(ldd $@ | awk '{print $$3}' | grep -v '^$$') lib
 
-style.h: style.css
-	echo -n 'const char* style_css =(' > style.h
-	sed 's/\\/\\\\/g; s/"/\\"/g; s/^\(.*\)$$/  \"\1\\n\"/' $< >> style.h
-	echo ');' >> style.h
+template.h: template.html
+	echo -n 'const char* template =(' >template.h
+	sed 's/\\/\\\\/g; s/"/\\"/g; s/^\(.*\)$$/  \"\1\\n\"/' $< >>template.h
+	echo ');' >>template.h
 
-bin/envhttpd: envhttpd.c style.h
+bin/envhttpd: envhttpd.c template.h
 	mkdir -p -v bin lib
 	gcc -O2 $< -o $@
 	strip $@
