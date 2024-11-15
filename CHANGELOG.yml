@@ -1,3 +1,17 @@
+v2.0.0-rc1:
+  date: 2024-11-12
+  branch: c-rewrite
+  description: |
+    * Complete rewrite in C
+    * Fix content types
+    * Breaking change: JSON moved to /json
+    * / now returns HTML
+    * /yaml now returns YAML
+    * /env now returns shell script
+    * /var/VARNAME now returns environment variable content
+    * Daemonize with -D
+    * More robust path handling with -i and -x
+
 v1.1.1:
   date: 2024-05-23
   description: |

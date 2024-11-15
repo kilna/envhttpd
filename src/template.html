@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>%s</title>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<style>
+:root { --sans: "Noto Sans", sans-serif; --mono: "Courier Prime", Courier, monospace; }
+body { font-family: var(--sans); background: linear-gradient(to right, #fff, #ffd, #fff); margin: 2rem; }
+table { border-collapse: collapse; margin: 0 auto 1rem auto; }
+th, td { padding: 0.75rem; border: 1px solid #888; text-align: left; }
+td { font-family: var(--mono); }
+th { background-color: #bbb; }
+tr:nth-child(odd) { background-color: #eef; }
+tr:nth-child(even) { background-color: #fff; }
+a { text-decoration: underline; text-decoration-color: #0001; color: inherit }
+a:hover { text-decoration: underline; text-decoration-color: #00f;  }
+ul { padding: 0; margin: 0; list-style: none; text-align: center; }
+li { display: inline; margin: 0; padding: 0 0.5rem 0 0.5rem; }
+pre { font-family: var(--mono); margin: 0; padding: 0; }
+footer { max-width: fit-content; margin: 1.5rem auto 0 auto; font-size: 0.7rem; font-weight: 200; text-align: center; color: #000; opacity: 0.4; line-height: 1.5rem; }
+footer:hover { opacity: 1; }
+footer a, footer a:hover { text-decoration: none; }
+footer a:hover { font-weight: 600; }
+div.badges { display: none; }
+div.copyright:hover + div.badges { display: block; }
+div.badges:hover { display: block; }
+footer img { height: 1.25rem; vertical-align: middle; opacity: 0.4; padding: 0.3rem; }
+footer img:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+%s
+</table>
+<ul>
+  <li><a href="/json?pretty" title="Download environment as JSON data">JSON</a></li>
+  <li><a href="/sh?export" title="Download environment as Shell Script">SHELL</a></li>
+  <li><a href="/yaml" title="Download environment as YAML data">YAML</a></li>
+</ul>
+<footer>
+  <div class="copyright">
+    <!-- Do not remove, as per MIT Link License; see LICENSE -->
+    <a href="https://github.com/kilna/envhttpd" target="_blank">
+      envhttpd <img src="icon.png"/> Copyright © 2024 Kilna, Anthony
+    </a>
+  </div>
+  <div class="badges">
+    <a href="https://hub.docker.com/r/kilna/envhttpd" target="_blank"><img src="https://img.shields.io/badge/DockerHub-kilna/envhttpd-blue?logo=docker"/></a>
+    <a href="https://github.com/kilna/envhttpd" target="_blank"><img src="https://img.shields.io/badge/GitHub-kilna/envhttpd-green?logo=github"/></a>
+  </div>
+</footer>
+</body>
+</html>

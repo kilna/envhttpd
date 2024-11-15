@@ -1,11 +1,11 @@
-.PHONY: all clean destroy static
+.PHONY: all scratch-install clean
 
 all: bin/tini bin/envhttpd bin/envhttpd-static
 
 scratch-install: bin/tini bin/envhttpd etc/passwd etc/group
 	rm -rfv Makefile *.h *.c
 	mkdir -p -v var/www
-	mv -v icon.png style.css var/www/
+	mv -v icon.png LICENSE var/www/
 	chown -R 33:33 var/www
 
 bin/tini:
@@ -13,24 +13,24 @@ bin/tini:
 	cp -v $$(which tini) $@
 	cp -v $$(ldd $@ | awk '{print $$3}' | grep -v '^$$') lib
 
-template.h: template.html
-	echo -n 'const char* template =(' >template.h
-	sed 's/\\/\\\\/g; s/"/\\"/g; s/^\(.*\)$$/  \"\1\\n\"/' $< >>template.h
-	echo ');' >>template.h
+src/template.h: src/template.html
+	echo -n 'const char* template =(' >$@
+	sed 's/\\/\\\\/g; s/"/\\"/g; s/^\(.*\)$$/  \"\1\\n\"/' $< >>$@
+	echo ');' >>$@
 
-bin/envhttpd: envhttpd.c template.h
+bin/envhttpd: src/envhttpd.c src/template.h
 	mkdir -p -v bin lib
 	gcc -O2 $< -o $@
 	strip $@
 	cp -v $$(ldd $@ | awk '{print $$3}' | grep -v '^$$') lib
 
-bin/envhttpd-static: envhttpd.c style.h
+bin/envhttpd-static: envhttpd.c src/template.h
 	mkdir -p -v bin
 	gcc -O2 -static $< -o $@
 	strip $@
 
 clean:
-	rm -tfv bin/ lib/ style.h
+	rm -tfv bin/ lib/ src/template.h var/ etc/
 
 etc/passwd etc/group:
 	mkdir -p -v etc

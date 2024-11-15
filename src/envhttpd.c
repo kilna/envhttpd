@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/utsname.h>
 #include "template.h"
 
 #define PORT 8111
@@ -62,6 +63,7 @@ void serve_homepage(int client_socket);
 void serve_json(int client_socket, int pretty);
 void serve_yaml(int client_socket);
 void serve_shell(int client_socket, int export_mode);
+void serve_sys(int client_socket);
 char *escape_json(const char *input);
 char *escape_html(const char *input);
 char *escape_yaml(const char *input);
@@ -118,6 +120,8 @@ int main(int argc, char *argv[]) {
         printf("  /sh           Gets env vars in shell evaluatable format.\n");
         printf("  /sh?export    Gets env vars as shell with `export` prefix.\n");
         printf("  /var/VARNAME  Gets the value of the specified env var.\n");
+        printf("\n");
+        printf("envhttpd - Copyright © 2024 Kilna, Anthony https://github.com/kilna/envhttpd\n");
         exit(EXIT_SUCCESS);
       case 'H':
         hostname = optarg;
@@ -230,20 +234,20 @@ void handle_client(int client_socket) {
 }
 
 void handle_get_request(int client_socket, const char *path) {
-  if (strcmp(path, "/style.css") == 0) {
-    serve_file(client_socket, "/var/www/style.css", "text/css");
+  if (strcmp(path, "/") == 0) {
+    serve_homepage(client_socket);
   } else if (strcmp(path, "/icon.png") == 0) {
     serve_file(client_socket, "/var/www/icon.png", "image/png");
   } else if (strncmp(path, "/var/", 5) == 0) {
     handle_var_request(client_socket, path + 5);
-  } else if (strcmp(path, "/") == 0) {
-    serve_homepage(client_socket);
   } else if (strcmp(path, "/json") == 0 || strcmp(path, "/json?pretty") == 0) {
     serve_json(client_socket, strcmp(path, "/json?pretty") == 0);
   } else if (strcmp(path, "/yaml") == 0) {
     serve_yaml(client_socket);
   } else if (strcmp(path, "/sh") == 0 || strcmp(path, "/sh?export") == 0) {
     serve_shell(client_socket, strcmp(path, "/sh?export") == 0);
+  } else if (strcmp(path, "/sys") == 0) {
+    serve_sys(client_socket);
   } else {
     send_error_response(client_socket, "404 Not Found", "Not Found");
   }
@@ -303,8 +307,8 @@ void serve_homepage(int client_socket) {
     }
 
     char *new_table_rows;
-    if (asprintf(&new_table_rows, "%s<tr><td><strong><a href=\"/var/%s\">%s</a></strong></td><td><pre>%s</pre></td></tr>\n",
-                 table_rows, url_encoded_key, escaped_key, escaped_value) == -1) {
+    if (asprintf(&new_table_rows, "%s<tr><td><strong><a href=\"/var/%s\" title=\"Raw %s environment variable contents\">%s</a></strong></td><td><pre>%s</pre></td></tr>\n",
+                 table_rows, url_encoded_key, escaped_key, escaped_key, escaped_value) == -1) {
       perror("asprintf failed");
       free(title);
       free(table_rows);
@@ -465,6 +469,30 @@ void serve_shell(int client_socket, int export_mode) {
   }
   send_response(client_socket, "text/plain", env_content);
   free(env_content);
+}
+
+void serve_sys(int client_socket) {
+  struct utsname sys_info;
+  if (uname(&sys_info) < 0) {
+    perror("uname failed");
+    send_error_response(client_socket, "500 Internal Server Error", "Could not retrieve system information");
+    return;
+  }
+
+  char response[BUFFER_SIZE];
+  snprintf(response, sizeof(response),
+           "System Name: %s\n"
+           "Node Name: %s\n"
+           "Release: %s\n"
+           "Version: %s\n"
+           "Machine: %s\n",
+           sys_info.sysname,
+           sys_info.nodename,
+           sys_info.release,
+           sys_info.version,
+           sys_info.machine);
+
+  send_response(client_socket, "text/plain", response);
 }
 
 void add_patterns(char *spec, PatternType type) {

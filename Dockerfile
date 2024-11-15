@@ -7,20 +7,23 @@ LABEL org.opencontainers.image.authors="Kilna Anthony <kilna@kilna.com>"
 LABEL org.opencontainers.image.url="https://hub.docker.com/r/kilna/envhttpd"
 LABEL org.opencontainers.image.source="https://github.com/kilna/envhttpd"
 LABEL org.opencontainers.image.documentation="https://github.com/kilna/envhttpd"
-LABEL org.opencontainers.image.description="A dockerized HTTPD for serving environment variables"
-LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.description="HTTP Server for Environment Variables"
+LABEL org.opencontainers.image.licenses="LicenseRef-MIT-Link-License"
 
 RUN apk add --no-cache gcc musl-dev build-base tini
 
-WORKDIR /build
+WORKDIR /envhttpd/
 
-COPY build/ /build/
+COPY . /envhttpd/
 
-RUN make scratch-install
+RUN make -f src/Makefile scratch-install
 
 FROM scratch
 
-COPY --from=build /build/ /
+COPY --from=build /envhttpd/bin /bin
+COPY --from=build /envhttpd/lib /lib
+COPY --from=build /envhttpd/etc /etc
+COPY --from=build /envhttpd/var /var
 
 USER www-data
 

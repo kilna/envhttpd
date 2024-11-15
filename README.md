@@ -1,6 +1,6 @@
-# envhttpd <img src="build/icon.png" style="height: 1em; vertical-align: middle;" />
+# envhttpd <img src="icon.png" style="height: 1em; vertical-align: middle;" />
 
-**A Dockerized HTTPD to Serve Environment Variables**
+**HTTP Server for Environment Variables**
 
 [![DockerHub kilna/envhttpd](https://img.shields.io/badge/DockerHub-kilna/envhttpd-blue?logo=docker)](https://hub.docker.com/r/kilna/envhttpd)
 [![Docker Image Version](https://img.shields.io/docker/v/kilna/envhttpd?sort=semver)](https://hub.docker.com/r/kilna/envhttpd)
@@ -13,16 +13,20 @@
 [![GitHub watchers](https://img.shields.io/github/watchers/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd/watchers)
 [![GitHub Repo stars](https://img.shields.io/github/stars/kilna/envhttpd?style=social)](https://github.com/kilna/envhttpd/stargazers)
 
-A web server and associated Docker image that delivers environment variables as
-HTML, JSON, YAML, and shell-evaluable script, and discrete curl-able endpoints.
-It allows filtering of environment variables based on inclusion and exclusion
-patterns to control what is exposed.
+A web server that delivers environment variables as HTML, JSON, YAML, and
+shell-evaluable script, and discrete curl-able endpoints. It allows filtering of
+environment variables based on inclusion and exclusion patterns to control what
+is exposed.
 
-Weighing in at less than 1mb, it is ideal to use as a queryable pod metadata
-sidecar in Kubernetes, or any situation in which you need to expose simple data
-without a lot of overhead.
+With a docker image weighing in at less than 1mb, it is ideal to use as a
+queryable pod metadata sidecar in Kubernetes, or any situation in which you need
+to expose simple data without a lot of overhead.
 
 ## Examples
+
+All of the below use a docker container...  when running locally just replace
+`docker run ... kilna/envhttpd` with `envhttpd` and make sure the environment
+variables are available (e.g. `export foo=bar`).
 
 ### Running the container
 
@@ -132,7 +136,13 @@ Endpoints:
   /sh           Gets env vars in shell evaluatable format.
   /sh?export    Gets env vars as shell with `export` prefix.
   /var/VARNAME  Gets the value of the specified env var.
+
+envhttpd, Copyright © 2024 Kilna, Anthony https://github.com/kilna/envhttpd
 ```
+
+## License
+
+[MIT Link License](./LICENSE)
 
 ## Author
 

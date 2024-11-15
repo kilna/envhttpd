@@ -1,0 +1,23 @@
+services:
+  server:
+    image: kilna/envhttp:build
+    networks:
+      - test-network
+    env_file: test.env
+    ports:
+      - "8999:8999"
+    platform: "${DOCKER_PLATFORM}"
+    command: -p 8999 -H server -x '*' -i '*_ME' -x EXCLUDE_ME -D
+  sut:
+    build:
+      context: .
+    environment:
+      - SERVER_HOST=server
+      - SERVER_PORT=8999
+    networks:
+      - test-network
+    depends_on:
+      - server
+networks:
+  test-network:
+    driver: bridge
