@@ -43,6 +43,7 @@ build-clean:
 build-all:
 	docker buildx build -t $(IMAGE):build --progress plain --push \
 	  --platform $(subst $(shell echo " "),$(shell echo ","),$(PLATFORMS)) .
+	docker pull $(IMAGE):build
 
 build-all-clean:
 	docker buildx build -t $(IMAGE):build --progress plain --push --no-cache \
