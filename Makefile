@@ -112,8 +112,7 @@ check_version:
 	fi
 
 check_git_status:
-	@set -e -o pipefail; \
-	if ! (git status --porcelain | grep -q '^'); then \
+	@if [ "$$(git status --porcelain | wc -l)" -gt 0 ]; then \
 	  echo "Git working copy is not up to date" >&2; \
 	  exit 1; \
 	fi
