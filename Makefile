@@ -112,7 +112,8 @@ check_version:
 	fi
 
 check_git_status:
-	@if ! git status --porcelain | grep -q '^'; then \
+	@set -e -o pipefail; \
+	if ! (git status --porcelain | grep -q '^'); then \
 	  echo "Git working copy is not up to date" >&2; \
 	  exit 1; \
 	fi
@@ -120,8 +121,8 @@ check_git_status:
 	  echo "Git working tree is not clean" >&2; \
 	  exit 1; \
 	fi
-	@if [ "$(VER)" != *-* ] && [ "$(GIT_BRANCH)" != "main" ]; then \
-	  echo "release must be on main branch for non-prerelease" >&2; \
+	@if [ "$(VER)" != *-* ] && [ "$(GIT_BRANCH)" == "main" ]; then \
+	  echo "release must be on feature branch for non-prerelease" >&2; \
 	  exit 1; \
 	fi
 	@changelog_branch="$$(yq e '.["v$(VER)"].branch' CHANGELOG.yml)"; \
