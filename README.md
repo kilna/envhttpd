@@ -1,4 +1,4 @@
-# envhttpd <img src="icon.png" style="height: 1em; vertical-align: middle;" />
+# envhttpd <img src="https://raw.github.com/kilna/envhttpd/master/icon.png?raw=true" style="height: 1em; vertical-align: middle;" />
 
 **HTTP Server for Environment Variables**
 
