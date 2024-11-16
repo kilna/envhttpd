@@ -42,7 +42,7 @@ Now point your browser at http://localhost:8111 and you should see something
 like this:
 
 ![envhttpd screenshot](https://raw.github.com/kilna/envhttpd/master/screenshot.png?raw=true)
-<style>img[alt="envhttpd screenshot"] { max-width: 60%; }</style>
+<style>img[alt="envhttpd screenshot"] { width: 760px; height: 525px; }</style>
 
 #### Providing command line options to the container
 
