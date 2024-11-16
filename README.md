@@ -1,5 +1,4 @@
-# envhttpd ![envhttpd icon](https://raw.github.com/kilna/envhttpd/master/icon.png?raw=true)
-<style>img[alt="envhttpd icon"] { height: 1em; vertical-align: middle; }</style>
+# envhttpd <img src="https://raw.github.com/kilna/envhttpd/master/icon.png?raw=true" style="height: 1em; vertical-align: middle; max-height: 32px;" />
 
 **HTTP Server for Environment Variables**
 
@@ -42,7 +41,6 @@ Now point your browser at http://localhost:8111 and you should see something
 like this:
 
 ![envhttpd screenshot](https://raw.github.com/kilna/envhttpd/master/screenshot.png?raw=true)
-<style>img[alt="envhttpd screenshot"] { width: 760px; height: 525px; }</style>
 
 #### Providing command line options to the container
 
