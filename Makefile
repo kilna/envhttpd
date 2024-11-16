@@ -129,7 +129,7 @@ check_git_status:
 	  echo "release must be on main branch for non-prerelease" >&2; \
 	  exit 1; \
 	fi
-	@changelog_branch="$$(yq e '.["v$(VER)"].branch' CHANGELOG.yml)"; \
+	@changelog_branch="$$(yq e '.["v$(VER)"].branch // "main"' CHANGELOG.yml)"; \
 	if [ "$$changelog_branch" != "$(GIT_BRANCH)" ]; then \
 	  echo "git branch $(GIT_BRANCH) does not match branch $$changelog_branch" \
 	       "in CHANGELOG.yml for prerelease $(VER)" >&2; \
