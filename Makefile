@@ -122,7 +122,11 @@ check_git_status:
 	  exit 1; \
 	fi
 	@if [ "$(VER)" != *-* ] && [ "$(GIT_BRANCH)" == "main" ]; then \
-	  echo "release must be on feature branch for non-prerelease" >&2; \
+	  echo "release must be on feature branch for prerelease" >&2; \
+	  exit 1; \
+	fi
+	@if [ "$(VER)" == *-* ] && [ "$(GIT_BRANCH)" != "main" ]; then \
+	  echo "release must be on main branch for non-prerelease" >&2; \
 	  exit 1; \
 	fi
 	@changelog_branch="$$(yq e '.["v$(VER)"].branch' CHANGELOG.yml)"; \
