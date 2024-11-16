@@ -1,4 +1,4 @@
-# envhttpd <img src="https://raw.github.com/kilna/envhttpd/master/icon.png?raw=true" style="height: 1em; vertical-align: middle;" />
+# envhttpd <span style="vertical-align: middle; height: 1em;">![envhttpd icon](https://raw.github.com/kilna/envhttpd/master/icon.png?raw=true)</span>
 
 **HTTP Server for Environment Variables**
 
@@ -30,12 +30,17 @@ variables are available (e.g. `export foo=bar`).
 
 ### Running the container
 
-Fire up a container and curl against it...
+Fire up a container...
 
 ```
 $ docker run -e foo=bar -e yo=bro -p 8111:8111 -d kilna/envhttpd
 Server is running at http://localhost:8111
 ```
+
+Now point your browser at http://localhost:8111 and you should see something
+like this:
+
+![envhttpd screenshot](https://raw.github.com/kilna/envhttpd/master/screen.shot.png?raw=true)
 
 #### Providing command line options to the container
 
