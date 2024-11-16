@@ -18,8 +18,9 @@ PLATFORMS=$(shell yq e '.platforms | join(" ")' PROJECT.yml)
 
 VERSIONS=$(shell yq e 'keys | .[]' CHANGELOG.yml \
                   | sed -e 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n)
-EDGE=$(shell echo $(VERSIONS) | tr ' ' '\n' | tail -n 1)
+PRERELEASE=$(shell echo $(VERSIONS) | tr ' ' '\n' | tail -n 1)
 LATEST=$(shell echo $(VERSIONS) | tr ' ' '\n' | grep -vF '-' | tail -n 1)
+EDGE=$(if $(filter $(LATEST)-%,$(PRERELEASE)),$(LATEST),$(PRERELEASE))
 
 CLEAN=$(shell echo $(VERSION) | sed -e 's/^v//')
 VER=$(if $(CLEAN),$(CLEAN),$(if $(eq $(GIT_BRANCH),main),$(LATEST),$(EDGE)))
@@ -89,6 +90,7 @@ info:
 	@echo MINOR: $(MINOR)
 	@echo MAJOR: $(MAJOR)
 	@echo VERSIONS: $(VERSIONS)
+	@echo PRERELEASE: $(PRERELEASE)
 	@echo LATEST: $(LATEST)
 	@echo EDGE: $(EDGE)
 	@echo GIT_BRANCH: $(GIT_BRANCH)
