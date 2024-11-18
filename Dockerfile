@@ -10,7 +10,8 @@ LABEL org.opencontainers.image.documentation="https://github.com/kilna/envhttpd"
 LABEL org.opencontainers.image.description="HTTP Server for Environment Variables"
 LABEL org.opencontainers.image.licenses="LicenseRef-MIT-Link-License"
 
-RUN apk add --no-cache gcc musl-dev build-base tini
+RUN apk add --no-cache gcc musl-dev build-base tini libmicrohttpd-dev \
+  cjson-dev
 
 WORKDIR /envhttpd/
 

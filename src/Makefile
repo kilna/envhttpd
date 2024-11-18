@@ -1,3 +1,7 @@
+OS=$(shell uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(shell uname -m | sed -e 's/aarch64/arm64/;s/x86_64/amd64/;s/i686/386/')
+CFLAGS=-I/usr/include/cjson  -L/usr/lib -lmicrohttpd -Wl,-Bstatic -lmicrohttpd -Wl,-Bdynamic
+
 .PHONY: all scratch-install clean
 
 all: bin/tini bin/envhttpd bin/envhttpd-static
@@ -20,13 +24,13 @@ src/template.h: src/template.html
 
 bin/envhttpd: src/envhttpd.c src/template.h
 	mkdir -p -v bin lib
-	gcc -O2 $< -o $@
+	gcc -O2 -static $< -o $@ $(CFLAGS)
 	strip $@
 	cp -v $$(ldd $@ | awk '{print $$3}' | grep -v '^$$') lib
 
 bin/envhttpd-static: envhttpd.c src/template.h
 	mkdir -p -v bin
-	gcc -O2 -static $< -o $@
+	gcc -O2 -static $< -o envhttpd-static-$(OS)-$(ARCH) $(CFLAGS)
 	strip $@
 
 clean:
