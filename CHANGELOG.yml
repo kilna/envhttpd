@@ -1,3 +1,9 @@
+v2.0.1-rc1:
+  date: 2026-01-23
+  branch: binary-artifacts
+  description: |
+    * Add static binary build and release process
+
 v2.0.0:
   date: 2024-11-16
   description: |
