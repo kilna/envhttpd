@@ -125,11 +125,15 @@ check_git_status:
 	  echo "Git working tree is not clean" >&2; \
 	  exit 1; \
 	fi
-	@if [ "$(VER)" == *-* ] && [ "$(GIT_BRANCH)" == "main" ]; then \
+	@ver_is_prerelease=no; \
+	case "$(VER)" in \
+	  *-*) ver_is_prerelease=yes ;; \
+	esac; \
+	if [ "$$ver_is_prerelease" = "yes" ] && [ "$(GIT_BRANCH)" = "main" ]; then \
 	  echo "release must be on feature branch for prerelease" >&2; \
 	  exit 1; \
-	fi
-	@if [ "$(VER)" != *-* ] && [ "$(GIT_BRANCH)" != "main" ]; then \
+	fi; \
+	if [ "$$ver_is_prerelease" = "no" ] && [ "$(GIT_BRANCH)" != "main" ]; then \
 	  echo "release must be on main branch for non-prerelease" >&2; \
 	  exit 1; \
 	fi
