@@ -10,21 +10,8 @@ permissions:
 
 jobs:
   linux:
-    name: Linux ${{ matrix.suffix }}
+    name: Static binaries
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - platform: linux/amd64
-            suffix: linux-amd64
-          - platform: linux/386
-            suffix: linux-386
-          - platform: linux/arm64
-            suffix: linux-arm64
-          - platform: linux/arm/v6
-            suffix: linux-arm-v6
-          - platform: linux/arm/v7
-            suffix: linux-arm-v7
     steps:
       - name: Prepare version
         id: prep
@@ -38,21 +25,19 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build static binary with Dockerfile target
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile.static-bin
-          platforms: ${{ matrix.platform }}
-          push: false
-          outputs: type=local,dest=./out/${{ matrix.suffix }}
-      - name: Prepare artifact
+      - name: Build static binaries
+        env:
+          VERSION: ${{ steps.prep.outputs.version }}
         run: |
-          src="out/${{ matrix.suffix }}/bin/envhttpd-static"
-          dest="envhttpd-${{ steps.prep.outputs.version }}-${{ matrix.suffix }}"
-          mv "$src" "$dest"
+          make static VERSION="${VERSION}"
+          mkdir -p dist
+          for path in out/envhttpd-*; do \
+            [ -f "$path" ] || continue; \
+            suffix=${path#out/envhttpd-}; \
+            cp "$path" "dist/envhttpd-${VERSION}-${suffix}"; \
+          done
       - name: Attach to release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.prep.outputs.tag }}
-          files: envhttpd-${{ steps.prep.outputs.version }}-${{ matrix.suffix }}
+          files: dist/envhttpd-${{ steps.prep.outputs.version }}-*
