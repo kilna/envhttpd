@@ -15,6 +15,8 @@
 IMAGE=$(shell yq e .image PROJECT.yml)
 SHORT_DESC=$(shell yq e .description PROJECT.yml)
 PLATFORMS=$(shell yq e '.platforms | join(" ")' PROJECT.yml)
+STATIC_PLATFORMS=$(shell yq e '.static_platforms | join(" ")' PROJECT.yml)
+STATIC_OUT ?= out
 
 VERSIONS=$(shell yq e 'keys | .[]' CHANGELOG.yml \
                   | sed -e 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n)
@@ -173,9 +175,26 @@ docker_release: check_version test-all-clean build-all-clean docker_install_push
 
 release: github_release docker_release
 
+.PHONY: static
+
+static:
+	rm -rf $(STATIC_OUT)
+	mkdir -p $(STATIC_OUT)
+	set -e; \
+	for platform in $(STATIC_PLATFORMS); do \
+	  suffix=$${platform//\//-}; \
+	  dest="$(STATIC_OUT)/$$suffix"; \
+	  docker buildx build --progress plain \
+			--platform $$platform --target static-artifact \
+			--output type=local,dest=$$dest .; \
+	  mv $$dest/envhttpd-static $(STATIC_OUT)/envhttpd-$$suffix; \
+	  rm -rf $$dest; \
+	done
+
 .PHONY: \
   build \
   build-all \
+  static \
   test \
   test-all \
   info \

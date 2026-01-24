@@ -11,6 +11,21 @@ COPY . /envhttpd/
 
 RUN make -f src/Makefile scratch-install
 
+FROM alpine:3.23 AS static-bin
+
+ARG TARGETARCH
+
+RUN apk add --no-cache build-base make curl musl-dev
+
+WORKDIR /envhttpd/
+
+COPY . /envhttpd/
+
+RUN make -f src/Makefile bin/envhttpd-static
+
+FROM scratch AS static-artifact
+COPY --from=static-bin /envhttpd/bin/envhttpd-static /envhttpd-static
+
 FROM scratch
 
 LABEL org.opencontainers.image.title="envhttpd"
