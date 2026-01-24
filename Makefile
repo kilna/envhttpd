@@ -190,7 +190,7 @@ static:
 	mkdir -p $(STATIC_OUT)
 	set -e; \
 	for platform in $(STATIC_PLATFORMS); do \
-	  suffix=$${platform//\//-}; \
+	  suffix=$$(echo "$$platform" | tr '/:' '-'); \
 	  dest="$(STATIC_OUT)/$$suffix"; \
 	  docker buildx build --progress plain \
 			--platform $$platform --target static-artifact \
