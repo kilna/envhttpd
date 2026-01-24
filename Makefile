@@ -183,8 +183,6 @@ docker_release: check_version test-all-clean build-all-clean docker_install_push
 
 release: github_release docker_release
 
-.PHONY: static
-
 static:
 	rm -rf $(STATIC_OUT)
 	mkdir -p $(STATIC_OUT)
