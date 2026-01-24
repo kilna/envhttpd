@@ -15,6 +15,8 @@
 IMAGE=$(shell yq e .image PROJECT.yml)
 SHORT_DESC=$(shell yq e .description PROJECT.yml)
 PLATFORMS=$(shell yq e '.platforms | join(" ")' PROJECT.yml)
+STATIC_PLATFORMS=$(shell yq e '.static_platforms | join(" ")' PROJECT.yml)
+STATIC_OUT ?= out
 
 VERSIONS=$(shell yq e 'keys | .[]' CHANGELOG.yml \
                   | sed -e 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n)
@@ -123,11 +125,15 @@ check_git_status:
 	  echo "Git working tree is not clean" >&2; \
 	  exit 1; \
 	fi
-	@if [ "$(VER)" == *-* ] && [ "$(GIT_BRANCH)" == "main" ]; then \
+	@ver_is_prerelease=no; \
+	case "$(VER)" in \
+	  *-*) ver_is_prerelease=yes ;; \
+	esac; \
+	if [ "$$ver_is_prerelease" = "yes" ] && [ "$(GIT_BRANCH)" = "main" ]; then \
 	  echo "release must be on feature branch for prerelease" >&2; \
 	  exit 1; \
-	fi
-	@if [ "$(VER)" != *-* ] && [ "$(GIT_BRANCH)" != "main" ]; then \
+	fi; \
+	if [ "$$ver_is_prerelease" = "no" ] && [ "$(GIT_BRANCH)" != "main" ]; then \
 	  echo "release must be on main branch for non-prerelease" >&2; \
 	  exit 1; \
 	fi
@@ -168,14 +174,35 @@ docker_release_latest:
 docker_release: check_version test-all-clean build-all-clean docker_install_pushrm
 	docker buildx imagetools create --tag $(IMAGE):$(VER) $(IMAGE):build
 	docker pull $(IMAGE):$(VER)
-	@[ "$(VER)" == "$(EDGE)" ] && $(MAKE) docker_release_edge VERSION=$(VER)
-	@[ "$(VER)" == "$(LATEST)" ] && $(MAKE) docker_release_latest VERSION=$(VER)
+	@if [ "$(VER)" = "$(EDGE)" ]; then \
+	  $(MAKE) docker_release_edge VERSION=$(VER); \
+	fi
+	@if [ "$(VER)" = "$(LATEST)" ]; then \
+	  $(MAKE) docker_release_latest VERSION=$(VER); \
+	fi
 
 release: github_release docker_release
+
+.PHONY: static
+
+static:
+	rm -rf $(STATIC_OUT)
+	mkdir -p $(STATIC_OUT)
+	set -e; \
+	for platform in $(STATIC_PLATFORMS); do \
+	  suffix=$$(echo "$$platform" | tr '/:' '-'); \
+	  dest="$(STATIC_OUT)/$$suffix"; \
+	  docker buildx build --progress plain \
+			--platform $$platform --target static-artifact \
+			--output type=local,dest=$$dest .; \
+	  mv $$dest/envhttpd-static $(STATIC_OUT)/envhttpd-$$suffix; \
+	  rm -rf $$dest; \
+	done
 
 .PHONY: \
   build \
   build-all \
+  static \
   test \
   test-all \
   info \
