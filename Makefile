@@ -174,8 +174,12 @@ docker_release_latest:
 docker_release: check_version test-all-clean build-all-clean docker_install_pushrm
 	docker buildx imagetools create --tag $(IMAGE):$(VER) $(IMAGE):build
 	docker pull $(IMAGE):$(VER)
-	@[ "$(VER)" == "$(EDGE)" ] && $(MAKE) docker_release_edge VERSION=$(VER)
-	@[ "$(VER)" == "$(LATEST)" ] && $(MAKE) docker_release_latest VERSION=$(VER)
+	@if [ "$(VER)" = "$(EDGE)" ]; then \
+	  $(MAKE) docker_release_edge VERSION=$(VER); \
+	fi
+	@if [ "$(VER)" = "$(LATEST)" ]; then \
+	  $(MAKE) docker_release_latest VERSION=$(VER); \
+	fi
 
 release: github_release docker_release
 
