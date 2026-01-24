@@ -1,0 +1,58 @@
+name: Binary release
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: Linux ${{ matrix.suffix }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            suffix: linux-amd64
+          - platform: linux/386
+            suffix: linux-386
+          - platform: linux/arm64
+            suffix: linux-arm64
+          - platform: linux/arm/v6
+            suffix: linux-arm-v6
+          - platform: linux/arm/v7
+            suffix: linux-arm-v7
+    steps:
+      - name: Prepare version
+        id: prep
+        run: |
+          TAG=${{ github.event.release.tag_name }}
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build static binary with Dockerfile target
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.static-bin
+          platforms: ${{ matrix.platform }}
+          push: false
+          outputs: type=local,dest=./out/${{ matrix.suffix }}
+      - name: Prepare artifact
+        run: |
+          src="out/${{ matrix.suffix }}/bin/envhttpd-static"
+          dest="envhttpd-${{ steps.prep.outputs.version }}-${{ matrix.suffix }}"
+          mv "$src" "$dest"
+      - name: Attach to release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.prep.outputs.tag }}
+          files: envhttpd-${{ steps.prep.outputs.version }}-${{ matrix.suffix }}

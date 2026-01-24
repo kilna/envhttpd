@@ -24,7 +24,7 @@ bin/envhttpd: src/envhttpd.c src/template.h
 	strip $@
 	cp -v $$(ldd $@ | awk '{print $$3}' | grep -v '^$$') lib
 
-bin/envhttpd-static: envhttpd.c src/template.h
+bin/envhttpd-static: src/envhttpd.c src/template.h
 	mkdir -p -v bin
 	gcc -O2 -static $< -o $@
 	strip $@
