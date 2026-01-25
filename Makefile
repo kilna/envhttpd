@@ -128,12 +128,6 @@ check_tools:
 	  exit 1; \
 	}
 
-# Run check_tools before any explicitly requested target (except check_tools itself)
-GOALS_NEEDING_CHECK_TOOLS := $(filter-out check_tools,$(MAKECMDGOALS))
-ifneq ($(GOALS_NEEDING_CHECK_TOOLS),)
-$(GOALS_NEEDING_CHECK_TOOLS): check_tools
-endif
-
 check_git_status:
 	@if [ "$$(git status --porcelain | wc -l)" -gt 0 ]; then \
 	  echo "Git working copy is not up to date" >&2; \
@@ -177,14 +171,14 @@ github_release: check_version check_git_status
 docker_release_edge:
 	docker buildx imagetools create -t $(IMAGE):edge $(IMAGE):$(VER)
 
-docker_release_latest: check_version
+docker_release_latest: check_version check_tools
 	docker buildx imagetools create -t $(IMAGE):latest $(IMAGE):$(VER)
 	docker pushrm $(IMAGE) -s "$(SHORT_DESC)"
 	docker buildx imagetools create -t $(IMAGE):latest $(IMAGE):$(VER)
 	docker buildx imagetools create -t $(IMAGE):$(MINOR) $(IMAGE):$(VER)
 	docker buildx imagetools create -t $(IMAGE):$(MAJOR) $(IMAGE):$(VER)
 
-docker_release: check_version test-all-clean build-all-clean
+docker_release: check_version check_tools test-all-clean build-all-clean
 	docker buildx imagetools create --tag $(IMAGE):$(VER) $(IMAGE):build
 	docker pull $(IMAGE):$(VER)
 	@if [ "$(VER)" = "$(EDGE)" ]; then \
@@ -194,7 +188,7 @@ docker_release: check_version test-all-clean build-all-clean
 	  $(MAKE) docker_release_latest VERSION=$(VER); \
 	fi
 
-docker_unrelease:
+docker_unrelease: check_tools
 	@for tag in $(DOCKER_UNRELEASE_TAGS); do \
 	  [ -n "$$tag" ] || continue; \
 	  yes | hub-tool tag rm $(IMAGE):$$tag || true; \
