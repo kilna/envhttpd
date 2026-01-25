@@ -1,4 +1,5 @@
 # Usage: make release VERSION=1.2.3
+#        make unrelease VERSION=1.2.3
 
 # Project information is stored in PROJECT.yml
 # Releases can only be performed from entries in CHANGELOG.yml:
@@ -31,11 +32,12 @@ MINOR=$(shell echo $(VER) | cut -d. -f1-2)
 
 GIT_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 
+DOCKER_UNRELEASE_TAGS=$(VER) $(if $(filter $(VER),$(EDGE)),edge) \
+	$(if $(filter $(VER),$(LATEST)),latest $(MINOR) $(MAJOR))
+
 OS=$(shell uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(shell uname -m | sed -e 's/aarch64/arm64/;s/x86_64/amd64/;s/i686/386/')
 export DOCKER_PLATFORM=linux/$(ARCH)
-PUSHRM_REPO = https://github.com/christian-korneck/docker-pushrm
-PUSHRM_URL = $(PUSHRM_REPO)/releases/download/v1.9.0/docker-pushrm_$(OS)_$(ARCH)
 
 build:
 	docker build -t $(IMAGE):build --progress plain .
@@ -98,7 +100,6 @@ info:
 	@echo GIT_BRANCH: $(GIT_BRANCH)
 	@echo OS: $(OS)
 	@echo ARCH: $(ARCH)
-	@echo PUSHRM_URL: $(PUSHRM_URL)
 
 check_version:
 	@if ! echo '$(VERSIONS)' | tr ' ' '\n' | grep -qF '$(VER)'; then \
@@ -115,6 +116,23 @@ check_version:
 	  echo "Error: CHANGELOG.yml is missing description for v$(VER)" >&2; \
 	  exit 1; \
 	fi
+
+check_tools:
+	@docker pushrm 2>&1 | grep -q "is not a docker command" && { \
+	  echo "Error: docker pushrm not found. Install the docker-pushrm plugin" >&2; \
+	  echo "  https://github.com/christian-korneck/docker-pushrm" >&2; \
+	  exit 1; \
+	} || true
+	@command -v hub-tool >/dev/null 2>&1 || { \
+	  echo "Error: hub-tool not found. Install with: brew install hub-tool" >&2; \
+	  exit 1; \
+	}
+
+# Run check_tools before any explicitly requested target (except check_tools itself)
+GOALS_NEEDING_CHECK_TOOLS := $(filter-out check_tools,$(MAKECMDGOALS))
+ifneq ($(GOALS_NEEDING_CHECK_TOOLS),)
+$(GOALS_NEEDING_CHECK_TOOLS): check_tools
+endif
 
 check_git_status:
 	@if [ "$$(git status --porcelain | wc -l)" -gt 0 ]; then \
@@ -156,22 +174,17 @@ github_release: check_version check_git_status
 	  $(if $(eq $(GIT_BRANCH),main),,--prerelease) \
 	  v$(VER)
 
-docker_install_pushrm:
-	@[ -e ~/.docker/cli-plugins/docker-pushrm ] && exit 0
-	curl -o ~/.docker/cli-plugins/docker-pushrm -fsSL $(PUSHRM_URL)
-	chmod +x ~/.docker/cli-plugins/docker-pushrm
-
 docker_release_edge:
 	docker buildx imagetools create -t $(IMAGE):edge $(IMAGE):$(VER)
 
-docker_release_latest:
+docker_release_latest: check_version
 	docker buildx imagetools create -t $(IMAGE):latest $(IMAGE):$(VER)
 	docker pushrm $(IMAGE) -s "$(SHORT_DESC)"
 	docker buildx imagetools create -t $(IMAGE):latest $(IMAGE):$(VER)
 	docker buildx imagetools create -t $(IMAGE):$(MINOR) $(IMAGE):$(VER)
 	docker buildx imagetools create -t $(IMAGE):$(MAJOR) $(IMAGE):$(VER)
 
-docker_release: check_version test-all-clean build-all-clean docker_install_pushrm
+docker_release: check_version test-all-clean build-all-clean
 	docker buildx imagetools create --tag $(IMAGE):$(VER) $(IMAGE):build
 	docker pull $(IMAGE):$(VER)
 	@if [ "$(VER)" = "$(EDGE)" ]; then \
@@ -181,9 +194,15 @@ docker_release: check_version test-all-clean build-all-clean docker_install_push
 	  $(MAKE) docker_release_latest VERSION=$(VER); \
 	fi
 
+docker_unrelease:
+	@for tag in $(DOCKER_UNRELEASE_TAGS); do \
+	  [ -n "$$tag" ] || continue; \
+	  yes | hub-tool tag rm $(IMAGE):$$tag || true; \
+	done
+
 release: github_release docker_release
 
-.PHONY: static
+unrelease: github_unrelease docker_unrelease
 
 static:
 	rm -rf $(STATIC_OUT)
@@ -207,11 +226,13 @@ static:
   test-all \
   info \
   release \
+  unrelease \
   github_release \
   github_unrelease \
   check_version \
+  check_tools \
   check_git_status \
   docker_release \
+  docker_unrelease \
   docker_release_edge \
-  docker_release_latest \
-  docker_install_pushrm
+  docker_release_latest
