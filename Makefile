@@ -178,9 +178,8 @@ docker_release_latest: check_version check_tools
 	docker buildx imagetools create -t $(IMAGE):$(MINOR) $(IMAGE):$(VER)
 	docker buildx imagetools create -t $(IMAGE):$(MAJOR) $(IMAGE):$(VER)
 
-docker_release: check_version check_tools test-all-clean build-all-clean
+docker_release: check_version check_tools test-all
 	docker buildx imagetools create --tag $(IMAGE):$(VER) $(IMAGE):build
-	docker pull $(IMAGE):$(VER)
 	@if [ "$(VER)" = "$(EDGE)" ]; then \
 	  $(MAKE) docker_release_edge VERSION=$(VER); \
 	fi
