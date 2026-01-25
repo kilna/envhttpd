@@ -1,12 +1,13 @@
-v2.0.1-rc1:
-  date: 2026-01-23
-  branch: binary-artifacts
+v2.0.1:
+  date: 2026-01-24
   description: |
     * Add static binary build and release process
+    * Add unrelease process
+    * Update tooling checks
 
 v2.0.0:
   date: 2024-11-16
-  description: |
+  description: 
     * Complete rewrite in C
     * Fix content types
     * Breaking change: JSON moved to /json
