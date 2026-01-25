@@ -163,8 +163,8 @@ check_git_status:
 	fi
 
 github_unrelease:
-	gh release delete -y v$(VER)
-	git push --delete origin v$(VER)
+	gh release delete -y v$(VER) || true
+	git push --delete origin v$(VER) || true
 
 github_release: check_version check_git_status
 	gh release delete -y v$(VER) || true
