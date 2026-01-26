@@ -5,7 +5,7 @@ v2.1.0:
     * Drop tini dependency
     * Embed icon.png into binary so it can ship in a single file
     * Drop serving of license (link to project suffices)
-    * Reduce image size to about 50kb
+    * Reduce image size from 400-500kb to about 50kb
 
 v2.0.1:
   date: 2026-01-24
