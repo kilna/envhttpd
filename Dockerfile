@@ -3,7 +3,7 @@ FROM alpine:3.23 AS build
 
 ARG TARGETARCH
 
-RUN apk add --no-cache build-base make tini curl musl-dev
+RUN apk add --no-cache build-base make curl musl-dev
 
 WORKDIR /envhttpd/
 
@@ -15,7 +15,7 @@ FROM alpine:3.23 AS static-bin
 
 ARG TARGETARCH
 
-RUN apk add --no-cache build-base make tini curl musl-dev
+RUN apk add --no-cache build-base make curl musl-dev
 
 WORKDIR /envhttpd/
 
@@ -43,7 +43,7 @@ COPY --from=build /envhttpd/var /var
 
 USER www-data
 
-ENTRYPOINT [ "/bin/tini", "--", "envhttpd" ]
+ENTRYPOINT [ "/bin/envhttpd" ]
 
 EXPOSE 8111
 

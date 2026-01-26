@@ -8,9 +8,11 @@
 #include <getopt.h>
 #include <fnmatch.h>
 #include <ctype.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
 #include "template.h"
 
 #define PORT 8111
@@ -71,6 +73,19 @@ char *escape_env(const char *input);
 char *escape_url(const char *src);
 char* get_env_var_value(const char *key);
 int needs_yaml_quoting(const char *value);
+
+static volatile sig_atomic_t got_sigterm = 0;
+
+static void sigchld_handler(int sig) {
+  (void)sig;
+  while (waitpid(-1, NULL, WNOHANG) > 0)
+    ;
+}
+
+static void sigterm_handler(int sig) {
+  (void)sig;
+  got_sigterm = 1;
+}
 
 int main(int argc, char *argv[]) {
   int opt;
@@ -180,15 +195,28 @@ int main(int argc, char *argv[]) {
     close(server_fd);
     exit(EXIT_FAILURE);
   }
+  {
+    struct sigaction sa = {0};
+    sa.sa_handler = sigchld_handler;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGCHLD, &sa, NULL);
+    sa.sa_handler = sigterm_handler;
+    sigaction(SIGTERM, &sa, NULL);
+    sigaction(SIGINT, &sa, NULL);
+  }
   FD_ZERO(&readfds); // Set of socket descriptors
   while (1) {
+    if (got_sigterm) break;
     FD_ZERO(&readfds); // Clear the socket set
     FD_SET(server_fd, &readfds); // Add server socket to set
     max_sd = server_fd;
     if (debug) { printf("Waiting for new connections...\n"); fflush(stdout); }
     // Wait for an activity on one of the sockets
     activity = select(max_sd + 1, &readfds, NULL, NULL, NULL);
-    if ((activity < 0) && (errno != EINTR)) { perror("select error"); }
+    if (activity < 0) {
+      if (errno == EINTR) { if (got_sigterm) break; continue; }
+      perror("select error");
+    }
     if (FD_ISSET(server_fd, &readfds)) {
       if ((client_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
         perror("accept failed");

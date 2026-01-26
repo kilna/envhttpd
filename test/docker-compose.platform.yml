@@ -1,6 +1,6 @@
 services:
   server:
-    image: kilna/envhttp:build
+    image: kilna/envhttpd:build
     networks:
       - test-network
     env_file: test.env

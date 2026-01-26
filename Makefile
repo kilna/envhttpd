@@ -40,10 +40,10 @@ ARCH=$(shell uname -m | sed -e 's/aarch64/arm64/;s/x86_64/amd64/;s/i686/386/')
 export DOCKER_PLATFORM=linux/$(ARCH)
 
 build:
-	docker build -t $(IMAGE):build --progress plain .
+	docker buildx build --load -t $(IMAGE):build --progress plain .
 
 build-clean:
-	docker build -t $(IMAGE):build --progress plain --no-cache .
+	docker buildx build --load -t $(IMAGE):build --progress plain --no-cache .
 
 build-all:
 	docker buildx build -t $(IMAGE):build --progress plain --push \
@@ -66,6 +66,9 @@ test: build
 	set -e -x; \
 	cd test; \
 	docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+
+test-init: build
+	IMAGE=$(IMAGE) sh test/test-init.sh
 
 test-all-nobuild:
 	set -e -x; \
@@ -216,6 +219,7 @@ static:
   build-all \
   static \
   test \
+  test-init \
   test-all \
   info \
   release \

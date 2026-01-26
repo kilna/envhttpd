@@ -1,17 +1,12 @@
 .PHONY: all scratch-install clean
 
-all: bin/tini bin/envhttpd bin/envhttpd-static
+all: bin/envhttpd bin/envhttpd-static
 
-scratch-install: bin/tini bin/envhttpd etc/passwd etc/group
+scratch-install: bin/envhttpd etc/passwd etc/group
 	rm -rfv Makefile *.h *.c
 	mkdir -p -v var/www
 	mv -v icon.png LICENSE var/www/
 	chown -R 33:33 var/www
-
-bin/tini:
-	mkdir -p -v bin lib
-	cp -v $$(which tini) $@
-	cp -v $$(ldd $@ | awk '{print $$3}' | grep -v '^$$') lib
 
 src/template.h: src/template.html
 	echo -n 'const char* template =(' >$@
