@@ -5,7 +5,6 @@ all: bin/tini bin/envhttpd bin/envhttpd-static
 scratch-install: bin/tini bin/envhttpd etc/passwd etc/group
 	rm -rfv Makefile *.h *.c
 	mkdir -p -v var/www
-	mv -v icon.png LICENSE var/www/
 	chown -R 33:33 var/www
 
 bin/tini:
@@ -18,19 +17,25 @@ src/template.h: src/template.html
 	sed 's/\\/\\\\/g; s/"/\\"/g; s/^\(.*\)$$/  \"\1\\n\"/' $< >>$@
 	echo ');' >>$@
 
-bin/envhttpd: src/envhttpd.c src/template.h
+src/icon.h: icon.png
+	echo 'const unsigned char icon_png[] = {' >$@
+	od -A n -t x1 -v $< | awk '{for(i=1;i<=NF;i++) if($$i!="") printf " 0x%s,\n", $$i}' >>$@
+	echo '};' >>$@
+	echo 'const unsigned int icon_png_len = '$$(wc -c < $<)';' >>$@
+
+bin/envhttpd: src/envhttpd.c src/template.h src/icon.h
 	mkdir -p -v bin lib
 	gcc -O2 $< -o $@
 	strip $@
 	cp -v $$(ldd $@ | awk '{print $$3}' | grep -v '^$$') lib
 
-bin/envhttpd-static: src/envhttpd.c src/template.h
+bin/envhttpd-static: src/envhttpd.c src/template.h src/icon.h
 	mkdir -p -v bin
 	gcc -O2 -static $< -o $@
 	strip $@
 
 clean:
-	rm -tfv bin/ lib/ src/template.h var/ etc/
+	rm -tfv bin/ lib/ src/template.h src/icon.h var/ etc/
 
 etc/passwd etc/group:
 	mkdir -p -v etc

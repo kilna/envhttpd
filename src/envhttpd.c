@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +13,7 @@
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include "template.h"
+#include "icon.h"
 
 #define PORT 8111
 #define BUFFER_SIZE 1024
@@ -55,8 +57,9 @@ void handle_client(int client_socket);
 void add_patterns(char *spec, PatternType type);
 void load_environment();
 void send_response(int client_socket, const char *content_type, const char *response);
+void send_binary_response(int client_socket, const char *content_type, const unsigned char *data, size_t len);
 void send_error_response(int client_socket, const char *status, const char *message);
-void serve_file(int client_socket, const char *file_path, const char *content_type);
+/* void serve_file(int client_socket, const char *file_path, const char *content_type); */
 void handle_get_request(int client_socket, const char *path);
 void handle_var_request(int client_socket, const char *var_name);
 void serve_homepage(int client_socket);
@@ -237,7 +240,7 @@ void handle_get_request(int client_socket, const char *path) {
   if (strcmp(path, "/") == 0) {
     serve_homepage(client_socket);
   } else if (strcmp(path, "/icon.png") == 0) {
-    serve_file(client_socket, "/var/www/icon.png", "image/png");
+    send_binary_response(client_socket, "image/png", icon_png, (size_t)icon_png_len);
   } else if (strncmp(path, "/var/", 5) == 0) {
     handle_var_request(client_socket, path + 5);
   } else if (strcmp(path, "/json") == 0 || strcmp(path, "/json?pretty") == 0) {
@@ -562,7 +565,7 @@ void send_response(int client_socket, const char *content_type, const char *resp
   free(header_buffer);
   size_t total_sent = 0;
   size_t total_length = response_len;
-  char *response_with_newline = (char *)response;
+  const char *response_ptr = response;
 
   while (total_sent < total_length) {
     size_t chunk_size = (
@@ -570,12 +573,50 @@ void send_response(int client_socket, const char *content_type, const char *resp
         ? (total_length - total_sent)
         : BUFFER_SIZE
     );
-    ssize_t sent = send(client_socket, response_with_newline + total_sent, chunk_size, 0);
+    ssize_t sent = send(client_socket, response_ptr + total_sent, chunk_size, 0);
     if (sent < 0) {
       perror("send body failed");
       break;
     }
     total_sent += sent;
+  }
+}
+
+void send_binary_response(int client_socket, const char *content_type, const unsigned char *data, size_t len) {
+  int header_length = snprintf(NULL, 0,
+                               "HTTP/1.1 200 OK\r\n"
+                               "Content-Type: %s\r\n"
+                               "Content-Length: %zu\r\n"
+                               "Hostname: %s\r\n"
+                               "\r\n",
+                               content_type, len, hostname) + 1;
+  char *header_buffer = malloc(header_length);
+  if (!header_buffer) {
+    perror("malloc failed");
+    return;
+  }
+  snprintf(header_buffer, header_length,
+           "HTTP/1.1 200 OK\r\n"
+           "Content-Type: %s\r\n"
+           "Content-Length: %zu\r\n"
+           "Hostname: %s\r\n"
+           "\r\n",
+           content_type, len, hostname);
+  if (send(client_socket, header_buffer, header_length - 1, 0) < 0) {
+    perror("send headers failed");
+    free(header_buffer);
+    return;
+  }
+  free(header_buffer);
+  size_t total_sent = 0;
+  while (total_sent < len) {
+    size_t chunk_size = (len - total_sent) < (size_t)BUFFER_SIZE ? (len - total_sent) : (size_t)BUFFER_SIZE;
+    ssize_t sent = send(client_socket, data + total_sent, chunk_size, 0);
+    if (sent < 0) {
+      perror("send body failed");
+      break;
+    }
+    total_sent += (size_t)sent;
   }
 }
 
@@ -590,6 +631,7 @@ void send_error_response(int client_socket, const char *status, const char *mess
   send(client_socket, buffer, strlen(buffer), 0);
 }
 
+/*
 void serve_file(int client_socket, const char *file_path, const char *content_type) {
   FILE *file = fopen(file_path, "rb");
   if (!file) {
@@ -619,6 +661,7 @@ void serve_file(int client_socket, const char *file_path, const char *content_ty
   send(client_socket, file_content, file_size, 0);
   free(file_content);
 }
+*/
 
 char *escape_json(const char *input) {
   size_t len = strlen(input);
