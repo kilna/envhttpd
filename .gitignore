@@ -3,4 +3,4 @@
 *.bak
 src/*.h
 TODO.txt
-
+out/

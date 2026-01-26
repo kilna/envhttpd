@@ -3,3 +3,4 @@ Dockerfile
 /Makefile
 *.md
 *.txt
+out/
