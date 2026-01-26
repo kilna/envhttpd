@@ -17,7 +17,6 @@ IMAGE=$(shell yq e .image PROJECT.yml)
 SHORT_DESC=$(shell yq e .description PROJECT.yml)
 PLATFORMS=$(shell yq e '.platforms | join(" ")' PROJECT.yml)
 STATIC_PLATFORMS=$(shell yq e '.static_platforms | join(" ")' PROJECT.yml)
-STATIC_OUT ?= out
 
 VERSIONS=$(shell yq e 'keys | .[]' CHANGELOG.yml \
                   | sed -e 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n)
@@ -70,7 +69,7 @@ test: build
 test-init: build
 	IMAGE=$(IMAGE) sh test/test-init.sh
 
-test-all-nobuild:
+test-all-nobuild: test-init
 	set -e -x; \
 	cd test; \
 	for platform in $(PLATFORMS); do \
@@ -201,16 +200,16 @@ release: github_release docker_release
 unrelease: github_unrelease docker_unrelease
 
 static:
-	rm -rf $(STATIC_OUT)
-	mkdir -p $(STATIC_OUT)
+	rm -rf out
+	mkdir -p out
 	set -e; \
 	for platform in $(STATIC_PLATFORMS); do \
 	  suffix=$$(echo "$$platform" | tr '/:' '-'); \
-	  dest="$(STATIC_OUT)/$$suffix"; \
+	  dest="out/$$suffix"; \
 	  docker buildx build --progress plain \
 			--platform $$platform --target static-artifact \
 			--output type=local,dest=$$dest .; \
-	  mv $$dest/envhttpd-static $(STATIC_OUT)/envhttpd-$$suffix; \
+	  mv $$dest/envhttpd-static out/envhttpd-$$suffix; \
 	  rm -rf $$dest; \
 	done
 

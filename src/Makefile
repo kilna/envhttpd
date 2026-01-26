@@ -1,11 +1,15 @@
-.PHONY: all scratch-install clean
+.PHONY: all clean scratch-install
 
-all: bin/envhttpd bin/envhttpd-static
+all: bin/envhttpd
 
-scratch-install: bin/envhttpd etc/passwd etc/group
-	rm -rfv Makefile *.h *.c
+scratch-install: bin/envhttpd
 	mkdir -p -v var/www
 	chown -R 33:33 var/www
+	mkdir -p -v etc
+	echo "root:x:0:" > etc/group
+	echo "www-data:x:33:www-data" >> etc/group
+	echo "root:x:0:0:root:/root:/sbin/nologin" > etc/passwd
+	echo "www-data:x:33:33:www-data:/var/www:/sbin/nologin" >> etc/passwd
 
 src/template.h: src/template.html
 	echo -n 'const char* template =(' >$@
@@ -19,22 +23,9 @@ src/icon.h: icon.png
 	echo 'const unsigned int icon_png_len = '$$(wc -c < $<)';' >>$@
 
 bin/envhttpd: src/envhttpd.c src/template.h src/icon.h
-	mkdir -p -v bin lib
-	gcc -O2 $< -o $@
-	strip $@
-	cp -v $$(ldd $@ | awk '{print $$3}' | grep -v '^$$') lib
-
-bin/envhttpd-static: src/envhttpd.c src/template.h src/icon.h
 	mkdir -p -v bin
 	gcc -O2 -static $< -o $@
 	strip $@
 
 clean:
-	rm -tfv bin/ lib/ src/template.h src/icon.h var/ etc/
-
-etc/passwd etc/group:
-	mkdir -p -v etc
-	echo "root:x:0:" > etc/group
-	echo "www-data:x:33:www-data" >> etc/group
-	echo "root:x:0:0:root:/root:/sbin/nologin" > etc/passwd
-	echo "www-data:x:33:33:www-data:/var/www:/sbin/nologin" >> etc/passwd
+	rm -tfv bin/ src/*.h var/ etc/

@@ -1,4 +1,4 @@
-# Build dynamically linked binary for the container image (musl via Alpine).
+# Build statically linked binary for the container image (musl via Alpine).
 FROM alpine:3.23 AS build
 
 ARG TARGETARCH
@@ -11,20 +11,8 @@ COPY . /envhttpd/
 
 RUN make -f src/Makefile scratch-install
 
-FROM alpine:3.23 AS static-bin
-
-ARG TARGETARCH
-
-RUN apk add --no-cache build-base make curl musl-dev
-
-WORKDIR /envhttpd/
-
-COPY . /envhttpd/
-
-RUN make -f src/Makefile bin/envhttpd-static
-
 FROM scratch AS static-artifact
-COPY --from=static-bin /envhttpd/bin/envhttpd-static /envhttpd-static
+COPY --from=build /envhttpd/bin/envhttpd /envhttpd-static
 
 FROM scratch
 
@@ -36,8 +24,7 @@ LABEL org.opencontainers.image.documentation="https://github.com/kilna/envhttpd"
 LABEL org.opencontainers.image.description="HTTP Server for Environment Variables"
 LABEL org.opencontainers.image.licenses="LicenseRef-MIT-Link-License"
 
-COPY --from=build /envhttpd/bin /bin
-COPY --from=build /envhttpd/lib /lib
+COPY --from=build /envhttpd/bin/envhttpd /bin/envhttpd
 COPY --from=build /envhttpd/etc /etc
 COPY --from=build /envhttpd/var /var
 
