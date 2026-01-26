@@ -18,8 +18,8 @@ shell-evaluable script, and discrete curl-able endpoints. It allows filtering of
 environment variables based on inclusion and exclusion patterns to control what
 is exposed.
 
-With a docker image weighing in at under 500kb (that less than half a megabyte),
-it is ideal to use as a queryable pod metadata sidecar in Kubernetes, or any
+With a docker image weighing in at about 50kb (about 1/20 of a megabyte), it is
+ideal to use as a queryable pod metadata sidecar in Kubernetes, or any
 situation in which you need to expose simple data without a lot of overhead.
 
 ## Examples
