@@ -1,3 +1,11 @@
+v2.1.0:
+  date: 2026-01-25
+  description: |
+    * Switch docker image to use static binary
+    * Drop tini dependency
+    * Embed icon.png into binary so it can ship in a single file
+    * Drop serving of license (link to project suffices)
+
 v2.0.1:
   date: 2026-01-24
   description: |
