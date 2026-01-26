@@ -20,23 +20,23 @@ assert_missing() {
 
 for path_file in \
   "/ env.html" \
+  "/icon.png icon.png" \
   "/sys sys.txt" \
   "/var/INCLUDE_ME var_INCLUDE_ME.txt" \
   "/json compact.json" \
   "/json?pretty pretty.json" \
   "/yaml env.yaml" \
   "/sh env.sh" \
-  "/sh?export export.sh"
+  "/sh?export export.sh" \
+  "/404 404.txt" \
+  "/var/EXCLUDE_ME var_EXCLUDE_ME.txt"
 do
   path=$(echo ${path_file} | cut -d' ' -f1)
   file=$(echo ${path_file} | cut -d' ' -f2)
   echo "Saving ${BASE_URL}${path} to ${file}"
-  curl -s -i ${BASE_URL}${path} -o ${file} -D ${file}.headers
+  curl -s -D ${file}.headers -o ${file} ${BASE_URL}${path}
   #cat ${file}.headers ${file}
 done
-
-curl -s -i ${BASE_URL}/var/EXCLUDE_ME -o var_EXCLUDE_ME.txt -D var_EXCLUDE_ME.txt.headers
-curl -s -i ${BASE_URL}/404 -o 404.txt -D 404.txt.headers
 
 
 echo "================================================"
@@ -47,6 +47,15 @@ echo "================================================"
 assert_present env.html.headers "200 OK"
 assert_present env.html.headers "Content-Type: text/html"
 assert_present env.html "Kilna, Anthony"
+
+assert_present icon.png.headers "200 OK"
+assert_present icon.png.headers "Content-Type: image/png"
+if head -c 8 icon.png | od -A n -t x1 | grep -q "89 50 4e 47"; then
+  echo "OK: icon.png has valid PNG signature"
+else
+  echo "Error: icon.png does not have valid PNG signature"; ERROR=$((ERROR + 1))
+fi
+
 assert_missing env.html "HOSTNAME"
 assert_missing env.html "EXCLUDE_ME"
 assert_present env.html "INCLUDE_ME"
