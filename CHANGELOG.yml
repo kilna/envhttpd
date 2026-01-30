@@ -1,3 +1,11 @@
+v2.1.1:
+  date: 2026-01-29
+  description: |
+    * Length limits and buffer overflow prevention for HTTP methods and paths
+    * Variable name validation
+    * Enhanced error handling
+    * Implemented explicit checks for read lengths and null-termination.
+
 v2.1.0:
   date: 2026-01-25
   description: |
