@@ -19,6 +19,9 @@
 
 #define PORT 8111
 #define BUFFER_SIZE 1024
+#define MAX_METHOD_LEN 7
+#define MAX_PATH_LEN (BUFFER_SIZE - 1)
+#define MAX_VAR_NAME_LEN 256
 #define MAX_PATTERNS 100
 #define MAX_ENV_VARS 1000
 #define DEFAULT_HOSTNAME "localhost"
@@ -76,6 +79,7 @@ char *escape_env(const char *input);
 char *escape_url(const char *src);
 char* get_env_var_value(const char *key);
 int needs_yaml_quoting(const char *value);
+static int is_valid_var_name(const char *s);
 
 static volatile sig_atomic_t got_sigterm = 0;
 
@@ -248,19 +252,40 @@ void handle_client(int client_socket) {
     close(client_socket);
     return;
   }
+  if (bytes_read == 0) {
+    close(client_socket);
+    return;
+  }
   buffer[bytes_read] = '\0';
-  char method[8];
-  char path[BUFFER_SIZE];
-  sscanf(buffer, "%s %s", method, path);
+
+  char *line_end = strpbrk(buffer, "\r\n");
+  if (!line_end) {
+    send_error_response(client_socket, "400 Bad Request",
+                        "Request line too long or invalid");
+    close(client_socket);
+    return;
+  }
+  *line_end = '\0';
+
+  char method[MAX_METHOD_LEN + 1];
+  char path[MAX_PATH_LEN + 1];
+  int n = sscanf(buffer, "%7s %1023s", method, path);
+  if (n != 2) {
+    send_error_response(client_socket, "400 Bad Request", "Bad Request");
+    close(client_socket);
+    return;
+  }
+  if (strcmp(method, "GET") != 0) {
+    send_error_response(client_socket, "405 Method Not Allowed",
+                        "Method Not Allowed");
+    close(client_socket);
+    return;
+  }
   if (debug) {
     printf("Received request: Method=%s, Path=%s\n", method, path);
     fflush(stdout);
   }
-  if (strcmp(method, "GET") == 0) {
-    handle_get_request(client_socket, path);
-  } else {
-    send_error_response(client_socket, "405 Method Not Allowed", "Method Not Allowed");
-  }
+  handle_get_request(client_socket, path);
   close(client_socket);
 }
 
@@ -285,12 +310,25 @@ void handle_get_request(int client_socket, const char *path) {
 }
 
 void handle_var_request(int client_socket, const char *var_name) {
-  char *end = strchr(var_name, '?');
-  if (end) { *end = '\0'; }
-  if (debug) {
-    printf("Fetching environment variable: %s\n", var_name);
+  char var_buf[MAX_VAR_NAME_LEN + 1];
+  size_t len = 0;
+  const char *p = var_name;
+  while (len < MAX_VAR_NAME_LEN && *p && *p != '?') {
+    var_buf[len++] = *p++;
   }
-  char *value = get_env_var_value(var_name);
+  var_buf[len] = '\0';
+  if (len == MAX_VAR_NAME_LEN && *p && *p != '?') {
+    send_error_response(client_socket, "400 Bad Request", "Bad Request");
+    return;
+  }
+  if (!is_valid_var_name(var_buf)) {
+    send_error_response(client_socket, "400 Bad Request", "Bad Request");
+    return;
+  }
+  if (debug) {
+    printf("Fetching environment variable: %s\n", var_buf);
+  }
+  char *value = get_env_var_value(var_buf);
   if (value) {
     send_response(client_socket, "text/plain", value);
   } else {
@@ -774,6 +812,21 @@ char *escape_url(const char *src) {
   }
   *penc = '\0';
   return enc;
+}
+
+static int is_valid_var_name(const char *s) {
+  if (!s || !*s)
+    return 0;
+  if (strstr(s, "..") != NULL)
+    return 0;
+  for (const char *p = s; *p; p++) {
+    char c = *p;
+    if (c == '/' || c == '\\')
+      return 0;
+    if (!isalnum((unsigned char)c) && c != '_' && c != '-' && c != '.')
+      return 0;
+  }
+  return 1;
 }
 
 char* get_env_var_value(const char *key) {
