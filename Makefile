@@ -28,6 +28,7 @@ CLEAN=$(shell echo $(VERSION) | sed -e 's/^v//')
 VER=$(if $(CLEAN),$(CLEAN),$(if $(eq $(GIT_BRANCH),main),$(LATEST),$(EDGE)))
 MAJOR=$(shell echo $(VER) | cut -d. -f1)
 MINOR=$(shell echo $(VER) | cut -d. -f1-2)
+IS_PRERELEASE=$(filter %-%,$(VER))
 
 GIT_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 
@@ -167,7 +168,7 @@ github_release: check_version check_git_status
 	git push --delete origin v$(VER) || true
 	gh release create --title v$(VER) --target $(GIT_BRANCH) \
 	  --notes "$$(yq e '.["v$(VER)"].description' CHANGELOG.yml)" \
-	  $(if $(eq $(GIT_BRANCH),main),,--prerelease) \
+	  $(if $(IS_PRERELEASE),--prerelease --latest=false,--latest) \
 	  v$(VER)
 
 docker_release_edge:
