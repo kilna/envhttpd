@@ -11,6 +11,7 @@ COPY . /envhttpd/
 RUN make -f src/Makefile scratch-install
 
 FROM scratch AS static-artifact
+COPY --from=build /envhttpd/bin/envhttpd /envhttpd-static
 
 FROM scratch
 
